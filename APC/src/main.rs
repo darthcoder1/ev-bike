@@ -31,7 +31,10 @@ fn main() -> ! {
 	_cortex_m.DWT.enable_cycle_counter();
 
 	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
+	let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
+
 	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
+	let mut channel0 = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
 
 	let mut delay = Delay::new(_cortex_m.SYST, _clocks);
 
@@ -50,8 +53,10 @@ fn main() -> ! {
     	let _power_out = switch_power_output(&_system_state, &_input, &_clocks);
 
     	if _power_out.turn_left_front {
+    		channel0.set_high();
     		led.set_low();
     	} else {
+    		channel0.set_low();
     		led.set_high();	
     	}
     	// TEST
