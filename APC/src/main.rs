@@ -10,6 +10,7 @@ extern crate panic_semihosting;
 extern crate stm32f103xx_hal as hal;
 
 use rt::ExceptionFrame;
+use cortex_m::peripheral::DWT;
 
 use hal::prelude::*;
 use hal::stm32f103xx;
@@ -20,13 +21,14 @@ entry!(main);
 // Main entry
 fn main() -> ! {
 
-	let _cortex_m = cortex_m::Peripherals::take().unwrap();
+	let mut _cortex_m = cortex_m::Peripherals::take().unwrap();
 	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
 
 	let mut _flash = _stm32f103.FLASH.constrain();
 	let mut _rcc = _stm32f103.RCC.constrain();
 
 	let _clocks = _rcc.cfgr.freeze(& mut _flash.acr);
+	_cortex_m.DWT.enable_cycle_counter();
 
 	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
 	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
@@ -45,13 +47,20 @@ fn main() -> ! {
 
     	// switch power
 		_system_state = update_system_state(_system_state, &_input);
-    	let _power_out = switch_power_output(&_system_state, &_input);
+    	let _power_out = switch_power_output(&_system_state, &_input, &_clocks);
 
+    	if _power_out.turn_left_front {
+    		led.set_low();
+    	} else {
+    		led.set_high();	
+    	}
     	// TEST
-    	delay.delay_ms(500_u16);
+    	//delay.delay_ms(500_u16);
     	led.set_high();
-    	delay.delay_ms(500_u16);
-    	led.set_low();
+    	//delay.delay_ms(500_u16);
+    	//led.set_low();
+
+    	// 3999753
 
     	
     	// apply power state to hardware
@@ -135,7 +144,7 @@ fn read_input() -> Input {
 		brake_rear : false,
 		turn_left : false,
 		turn_right : false,
-		hazard_light : false,
+		hazard_light : true,
 		light_on : false,
 		full_beam : false,
 		horn : false, 
@@ -146,18 +155,36 @@ fn read_input() -> Input {
 	input
 }
 
+
+// ---------------
+// Time Handling code
+use hal::rcc::Clocks;
+
 #[derive(Clone, Copy)]
-struct TimeStamp(i32);
+struct TimeStamp(u32);
 
 // TODO: get time from device
 fn device_get_ticks() -> TimeStamp {
 	
-	TimeStamp(0)
+	TimeStamp(DWT::get_cycle_count())
 }
 
-// TODO: convert ms to ticks
-fn time_milliseconds_to_ticks(ms : i32) -> i32 {
-	ms
+fn device_get_clock_frequency() -> u32 {
+
+	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
+	let mut _rcc = _stm32f103.RCC.constrain();
+	let mut _flash = _stm32f103.FLASH.constrain();
+	let _clocks = _rcc.cfgr.freeze(& mut _flash.acr);
+
+	_clocks.sysclk().0
+}
+
+fn time_us_to_ticks(_clocks : &Clocks, us : u32) -> u32 {
+	us *(_clocks.sysclk().0 / 1000000)
+}
+
+fn time_ms_to_ticks(_clocks : &Clocks, ms : u32) -> u32 {
+	time_us_to_ticks(&_clocks, ms * 1000)
 }
 
 // This indicates s state and if active, since which tick
@@ -199,7 +226,7 @@ fn update_system_state(_system : System, _input : &Input) -> System {
 	}
 }
 
-fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : i32, _off_time : i32) -> bool {
+fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : u32, _off_time : u32) -> bool {
 
 	match _state {
 		State::Active(start_time) => {
@@ -226,10 +253,10 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : i32,
 //  * Turn_Left/
 //	  Turn_Right:	If turn signal is activated, the turn signal lights on the according side will blink
 //					with the defined frequency
-fn switch_turn_signals(_system_state : &System, _input : &Input, _power_out : & mut PowerOutput)
+fn switch_turn_signals(_system_state : &System, _input : &Input, _clocks : &Clocks, _power_out : & mut PowerOutput)
 {
 	let current_time = device_get_ticks();
-	let _one_sec_in_ticks = time_milliseconds_to_ticks(1000);
+	let _one_sec_in_ticks = time_ms_to_ticks(&_clocks, 1000);
 
 	let _hazard_on = match _system_state.hazard {
 		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
@@ -320,7 +347,7 @@ fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
 // Switches the power output based on the input and current system state and
 // returns the PowerOutput prefilled. The return value contains the state of the
 // Power output as it should be applied by the hardware. 
-fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
+fn switch_power_output(_system : &System, _input : &Input, _clock : &Clocks) -> PowerOutput {
 	
 	let mut power_output = PowerOutput {
 		turn_left_front : false,
@@ -335,9 +362,9 @@ fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 		horn : _input.horn,
 	};
 
-	switch_turn_signals(&_system, &_input, & mut power_output);	
+	switch_turn_signals(&_system, &_input, &_clock, & mut power_output);	
 	switch_light_signals(&_input, & mut power_output);
-	
+
 	power_output
 }
 
