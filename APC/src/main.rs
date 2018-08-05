@@ -140,8 +140,8 @@ fn update_system_state(_system : System, _input : &Input) -> System {
 fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : i32, _off_time : i32) -> bool {
 
 	match _state {
-		State::Active(startTime) => {
-			let _time_passed = _cur_time.0 - startTime.0;
+		State::Active(start_time) => {
+			let _time_passed = _cur_time.0 - start_time.0;
 			let _passed_cycles_mod = _time_passed % (_on_time + _off_time);
 
 			if _passed_cycles_mod < _on_time {
@@ -155,26 +155,91 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : i32,
 	}
 }
 
-fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
-	
+fn switch_turn_signals(_system_state : &System, _input : &Input, _power_out : & mut PowerOutput)
+{
 	let current_time = device_get_ticks();
 	let _one_sec_in_ticks = time_milliseconds_to_ticks(1000);
 
-	let _hazard_on = match _system.hazard {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+	let _hazard_on = match _system_state.hazard {
+		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 	
-	let _turn_left_on = match _system.turn_left {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system.turn_left, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+	let _turn_left_on = match _system_state.turn_left {
+		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.turn_left, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 	
-	let _turn_right_on = match _system.turn_right {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system.turn_right, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+	let _turn_right_on = match _system_state.turn_right {
+		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.turn_right, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 
+	if _hazard_on.0 {
+		_power_out.turn_right_front = _hazard_on.1;
+		_power_out.turn_right_rear = _hazard_on.1;
+		_power_out.turn_left_front = _hazard_on.1;
+		_power_out.turn_left_rear = _hazard_on.1;
+	}
+	else {
+		if _turn_left_on.0 {
+			_power_out.turn_left_front = _turn_left_on.1;
+			_power_out.turn_left_rear = _turn_left_on.1;
+			_power_out.turn_right_front = false;
+			_power_out.turn_right_rear = false;
+		}
+		else if _turn_right_on.0 {
+			_power_out.turn_right_front = _turn_right_on.1;
+			_power_out.turn_right_rear = _turn_right_on.1;
+			_power_out.turn_left_front = false;
+			_power_out.turn_left_rear = false;
+			
+		}
+		else {
+			_power_out.turn_right_front = false;
+			_power_out.turn_right_rear = false;	
+			_power_out.turn_left_front = false;
+			_power_out.turn_left_rear = false;
+		}
+	}
+}
+
+fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
+
+	if _input.ignition {
+	
+		match _input.light_on {
+			true => {
+				_power_out.head_light_lowbeam = true;
+				_power_out.rear_light = true;
+			}
+			false => {
+				_power_out.head_light_lowbeam = false;
+				_power_out.rear_light = false;
+			}
+		}
+
+		_power_out.head_light_fullbeam = _input.full_beam;
+	} else {
+		match _input.light_on {
+			true => {
+				_power_out.head_light_lowbeam = false;
+				_power_out.head_light_parking = true;
+				_power_out.rear_light = true;
+			},
+			false => {
+				_power_out.head_light_lowbeam = false;
+				_power_out.head_light_parking = false;
+				_power_out.rear_light = false;
+			}
+		}
+		_power_out.head_light_fullbeam = false;
+	}	
+}
+
+
+fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
+	
 	let mut power_output = PowerOutput {
 		turn_left_front : false,
 		turn_left_rear : false,
@@ -184,38 +249,12 @@ fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 		head_light_lowbeam : false,
 		head_light_fullbeam : false,
 		rear_light : false,
-		brake_light : false,
-		horn : false,
+		brake_light : _input.brake_front || _input.brake_rear,
+		horn : _input.horn,
 	};
 
-	if _hazard_on.0 {
-		power_output.turn_right_front = _hazard_on.1;
-		power_output.turn_right_rear = _hazard_on.1;
-		power_output.turn_left_front = _hazard_on.1;
-		power_output.turn_left_rear = _hazard_on.1;
-	}
-	else {
-		if _turn_left_on.0 {
-			power_output.turn_left_front = _turn_left_on.1;
-			power_output.turn_left_rear = _turn_left_on.1;
-			power_output.turn_right_front = false;
-			power_output.turn_right_rear = false;
-		}
-		else if _turn_right_on.0 {
-			power_output.turn_right_front = _turn_right_on.1;
-			power_output.turn_right_rear = _turn_right_on.1;
-			power_output.turn_left_front = false;
-			power_output.turn_left_rear = false;
-			
-		}
-		else {
-			power_output.turn_right_front = false;
-			power_output.turn_right_rear = false;	
-			power_output.turn_left_front = false;
-			power_output.turn_left_rear = false;
-		}
-	}
-	
+	switch_turn_signals(&_system, &_input, & mut power_output);	
+	switch_light_signals(&_input, & mut power_output);
 
 	power_output
 }
