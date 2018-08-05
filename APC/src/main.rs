@@ -39,7 +39,7 @@ struct Input
 	side_stand : bool,
 }
 
-
+// This will be the translation for the harware channel number
 enum PowerChannel
 {
 	TurnLeftFront = 0,
@@ -54,6 +54,8 @@ enum PowerChannel
 	Horn=9,
 }
 
+// This describes how the power ouptput needs to be swithed, which
+// outputs to open and which to close
 struct PowerOutput
 {
 	turn_left_front : bool,
@@ -68,6 +70,8 @@ struct PowerOutput
 	horn : bool,
 }
 
+// TODO. This will read the input data pins from the driver controlls
+// and fill in the Input structure
 fn read_input() -> Input {
 	
 	// TOOD: read input from pins
@@ -92,21 +96,26 @@ fn read_input() -> Input {
 #[derive(Clone, Copy)]
 struct TimeStamp(i32);
 
+// TODO: get time from device
 fn device_get_ticks() -> TimeStamp {
-	// TODO: get time from device
+	
 	TimeStamp(0)
 }
 
+// TODO: convert ms to ticks
 fn time_milliseconds_to_ticks(ms : i32) -> i32 {
 	ms
 }
 
+// This indicates s state and if active, since which tick
 enum State
 {
 	Active(TimeStamp),
 	Inactive,
 }
 
+// This is the system state that needs to be kept around for timing relevant
+// state
 struct System
 {
 	turn_left : State,
@@ -155,6 +164,15 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : i32,
 	}
 }
 
+// Switch the turn signals based on the driver input and also calculate the signaling based on the 
+// defined turn signal interval.
+//
+// Order of evaluations:
+//  * Hazard:		If hazard is activated, turn signal input is ignored, and all turn signal lights blink with
+//					the defined frequency
+//  * Turn_Left/
+//	  Turn_Right:	If turn signal is activated, the turn signal lights on the according side will blink
+//					with the defined frequency
 fn switch_turn_signals(_system_state : &System, _input : &Input, _power_out : & mut PowerOutput)
 {
 	let current_time = device_get_ticks();
@@ -204,6 +222,15 @@ fn switch_turn_signals(_system_state : &System, _input : &Input, _power_out : & 
 	}
 }
 
+// Switches the lights according to driver input
+//
+// There are two modes:
+//  * Ignition On:		When light is turned on, low beam and rear light will
+//						be activated. This also allows the full beam to be turned on
+//						when the driver input activated it.
+//						When light is off, all head and read lights are turned off and
+//						the full beam input will be ignored.
+//  * Ignition Off:		When light is on, parking light is enabled, all other ligths stay off.
 fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
 
 	if _input.ignition {
@@ -212,14 +239,13 @@ fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
 			true => {
 				_power_out.head_light_lowbeam = true;
 				_power_out.rear_light = true;
+				_power_out.head_light_fullbeam = _input.full_beam;
 			}
 			false => {
 				_power_out.head_light_lowbeam = false;
 				_power_out.rear_light = false;
 			}
 		}
-
-		_power_out.head_light_fullbeam = _input.full_beam;
 	} else {
 		match _input.light_on {
 			true => {
@@ -238,6 +264,9 @@ fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
 }
 
 
+// Switches the power output based on the input and current system state and
+// returns the PowerOutput prefilled. The return value contains the state of the
+// Power output as it should be applied by the hardware. 
 fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 	
 	let mut power_output = PowerOutput {
@@ -259,8 +288,10 @@ fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 	power_output
 }
 
+// Main entry
 fn main() -> ! {
 
+	// setup the turn signal state
 	let mut _system_state = System {
 		turn_left : State::Inactive,
 		turn_right : State::Inactive,
@@ -270,9 +301,15 @@ fn main() -> ! {
     loop {
     	let _input = read_input();
 
+    	// switch power
 		_system_state = update_system_state(_system_state, &_input);
-
     	let _power_out = switch_power_output(&_system_state, &_input);
+
+    	// apply power state to hardware
+
+    	// read diagnosis from PFETs
+
+    	// output telemetry data
     }
  }
 
