@@ -5,12 +5,70 @@
 extern crate cortex_m;
 #[macro_use]
 extern crate cortex_m_rt as rt;
-extern crate cortex_m_semihosting;
+extern crate cortex_m_semihosting as sh;
 extern crate panic_semihosting;
+#[macro_use]
+//extern crate stm32f103xx;
+extern crate stm32f103xx_hal as hal;
+#[macro_use(block)]
+extern crate nb;
 
 use rt::ExceptionFrame;
 
+use cortex_m::peripheral::syst::SystClkSource;
+use stm32f103xx::Interrupt;
+use hal::prelude::*;
+use hal::stm32f103xx;
+use hal::timer::Timer;
+
 entry!(main);
+
+// Main entry
+fn main() -> ! {
+
+	let _cortex_m = cortex_m::Peripherals::take().unwrap();
+	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
+
+	let mut _flash = _stm32f103.FLASH.constrain();
+	let mut _rcc = _stm32f103.RCC.constrain();
+
+	let clocks = _rcc.cfgr.freeze(& mut _flash.acr);
+
+
+	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
+	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
+
+	let mut timer = Timer::syst(_cortex_m.SYST, 1.hz(), clocks);
+
+	// setup the turn signal state
+	let mut _system_state = System {
+		turn_left : State::Inactive,
+		turn_right : State::Inactive,
+		hazard : State::Inactive,
+	};
+
+    loop {
+    	let _input = read_input();
+
+    	// switch power
+		_system_state = update_system_state(_system_state, &_input);
+    	let _power_out = switch_power_output(&_system_state, &_input);
+
+    	// TEST
+    	block!(timer.wait()).unwrap();
+    	led.set_high();
+    	block!(timer.wait()).unwrap();
+    	led.set_low();
+    	// apply power state to hardware
+
+    	// read diagnosis from PFETs
+
+    	// output telemetry data
+    }
+ }
+
+
+
 
 // These are the inputs coming from the driver controlls
 struct Input
@@ -288,30 +346,7 @@ fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 	power_output
 }
 
-// Main entry
-fn main() -> ! {
 
-	// setup the turn signal state
-	let mut _system_state = System {
-		turn_left : State::Inactive,
-		turn_right : State::Inactive,
-		hazard : State::Inactive,
-	};
-
-    loop {
-    	let _input = read_input();
-
-    	// switch power
-		_system_state = update_system_state(_system_state, &_input);
-    	let _power_out = switch_power_output(&_system_state, &_input);
-
-    	// apply power state to hardware
-
-    	// read diagnosis from PFETs
-
-    	// output telemetry data
-    }
- }
 
  // define the hard fault handler
  exception!(HardFault, hard_fault);
