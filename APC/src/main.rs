@@ -1,4 +1,4 @@
-//#![deny(unsafe_code)]
+#![deny(unsafe_code)]
 #![no_main]
 #![no_std]
 
@@ -7,19 +7,13 @@ extern crate cortex_m;
 extern crate cortex_m_rt as rt;
 extern crate cortex_m_semihosting as sh;
 extern crate panic_semihosting;
-#[macro_use]
-//extern crate stm32f103xx;
 extern crate stm32f103xx_hal as hal;
-#[macro_use(block)]
-extern crate nb;
 
 use rt::ExceptionFrame;
 
-use cortex_m::peripheral::syst::SystClkSource;
-use stm32f103xx::Interrupt;
 use hal::prelude::*;
 use hal::stm32f103xx;
-use hal::timer::Timer;
+use hal::delay::Delay;
 
 entry!(main);
 
@@ -32,13 +26,12 @@ fn main() -> ! {
 	let mut _flash = _stm32f103.FLASH.constrain();
 	let mut _rcc = _stm32f103.RCC.constrain();
 
-	let clocks = _rcc.cfgr.freeze(& mut _flash.acr);
-
+	let _clocks = _rcc.cfgr.freeze(& mut _flash.acr);
 
 	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
 	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
 
-	let mut timer = Timer::syst(_cortex_m.SYST, 1.hz(), clocks);
+	let mut delay = Delay::new(_cortex_m.SYST, _clocks);
 
 	// setup the turn signal state
 	let mut _system_state = System {
@@ -55,10 +48,12 @@ fn main() -> ! {
     	let _power_out = switch_power_output(&_system_state, &_input);
 
     	// TEST
-    	block!(timer.wait()).unwrap();
+    	delay.delay_ms(500_u16);
     	led.set_high();
-    	block!(timer.wait()).unwrap();
+    	delay.delay_ms(500_u16);
     	led.set_low();
+
+    	
     	// apply power state to hardware
 
     	// read diagnosis from PFETs
@@ -186,7 +181,7 @@ fn update_state(_prev_state : State, _input_flag : bool) -> State {
 	
 	if _input_flag  {
 		match _prev_state {
-			State::Active(time) => _prev_state,
+			State::Active(_time) => _prev_state,
 			State::Inactive => State::Active(device_get_ticks()),
 		}
 	}
@@ -237,17 +232,17 @@ fn switch_turn_signals(_system_state : &System, _input : &Input, _power_out : & 
 	let _one_sec_in_ticks = time_milliseconds_to_ticks(1000);
 
 	let _hazard_on = match _system_state.hazard {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 	
 	let _turn_left_on = match _system_state.turn_left {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.turn_left, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.turn_left, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 	
 	let _turn_right_on = match _system_state.turn_right {
-		State::Active(start_time) => (true, caclulate_turn_signal(&_system_state.turn_right, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
+		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.turn_right, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
 		State::Inactive => (false, false),
 	};
 
@@ -342,7 +337,7 @@ fn switch_power_output(_system : &System, _input : &Input) -> PowerOutput {
 
 	switch_turn_signals(&_system, &_input, & mut power_output);	
 	switch_light_signals(&_input, & mut power_output);
-
+	
 	power_output
 }
 
