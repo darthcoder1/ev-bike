@@ -8,6 +8,7 @@ extern crate cortex_m_rt as rt;
 extern crate cortex_m_semihosting as sh;
 extern crate panic_semihosting;
 extern crate stm32f103xx_hal as hal;
+extern crate embedded_hal;
 
 use rt::ExceptionFrame;
 use cortex_m::peripheral::DWT;
@@ -15,6 +16,7 @@ use cortex_m::peripheral::DWT;
 use hal::prelude::*;
 use hal::stm32f103xx;
 use hal::delay::Delay;
+use embedded_hal::digital::OutputPin;
 
 entry!(main);
 
@@ -30,11 +32,17 @@ fn main() -> ! {
 	let _clocks = _rcc.cfgr.freeze(& mut _flash.acr);
 	_cortex_m.DWT.enable_cycle_counter();
 
-	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
+	let mut gpioa = _stm32f103.GPIOA.split(& mut _rcc.apb2);
 	let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
+	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
 
 	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
-	let mut channel0 = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
+	
+	let mut channel0_on = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
+	let mut channel1_on = gpiob.pb6.into_push_pull_output(& mut gpiob.crl);
+
+	//let mut channel0_st = gpioa.pa5.into_floating_input(& mut gpioa.crl);
+	//let mut channel1_st = gpioa.pa6.into_floating_input(& mut gpioa.crl);
 
 	let mut delay = Delay::new(_cortex_m.SYST, _clocks);
 
@@ -51,17 +59,21 @@ fn main() -> ! {
     	// switch power
 		_system_state = update_system_state(_system_state, &_input);
     	let _power_out = switch_power_output(&_system_state, &_input, &_clocks);
-
+    	
     	if _power_out.turn_left_front {
-    		channel0.set_high();
+    		channel0_on.set_high();
     		led.set_low();
     	} else {
-    		channel0.set_low();
+    		channel0_on.set_low();
     		led.set_high();	
     	}
+
+    	apply_power_output(_power_out);
+
+    	
     	// TEST
     	//delay.delay_ms(500_u16);
-    	led.set_high();
+    	//led.set_high();
     	//delay.delay_ms(500_u16);
     	//led.set_low();
 
@@ -119,7 +131,11 @@ enum PowerChannel
 	RearLight = 7,
 	BrakeLight = 8,
 	Horn=9,
+
+	NumChannels = 10,
 }
+
+//fn initialize_power_channel(_channel : PowerChannel, )
 
 // This describes how the power ouptput needs to be swithed, which
 // outputs to open and which to close
@@ -235,7 +251,7 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : u32,
 
 	match _state {
 		State::Active(start_time) => {
-			let _time_passed = _cur_time.0 - start_time.0;
+			let _time_passed = _cur_time.0.wrapping_sub(start_time.0);
 			let _passed_cycles_mod = _time_passed % (_on_time + _off_time);
 
 			if _passed_cycles_mod < _on_time {
@@ -371,6 +387,51 @@ fn switch_power_output(_system : &System, _input : &Input, _clock : &Clocks) -> 
 	switch_light_signals(&_input, & mut power_output);
 
 	power_output
+}
+
+fn apply_power_output(_power_out : PowerOutput) {
+	/*let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
+	let mut _rcc = _stm32f103.RCC.constrain();
+
+	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
+	let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
+
+	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
+	let mut channel0 = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
+
+	//let mut channel : i32 = channel0;*/
+}
+
+struct PowerChannelPinMap
+{
+	//pinCallMap : [_, PowerChannel::NumChannels],
+}
+
+/*impl PowerChannelPinMap {
+
+	fn new() -> PowerChannelPinMap {
+		
+		let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
+		let mut _rcc = _stm32f103.RCC.constrain();
+
+		let mut gpioa = _stm32f103.GPIOA.split(& mut _rcc.apb2);
+		let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
+		let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
+		
+
+		let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
+		
+		let mut channel0_on = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
+		let mut channel0_st = gpiob.pa5.into_floating_input(& mut gpioa.cr);
+
+		let mut channel1_on = gpiob.pb6.into_push_pull_output(& mut gpiob.crl);
+		let mut channel1_st = gpiob.pb5.into_floating_input(& mut gpioa.cr);
+	}
+}*/
+
+
+fn set_power_channel(_channel : PowerChannel, _high : bool, _gpio_pin : impl OutputPin) {
+
 }
 
 
