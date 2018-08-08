@@ -2,6 +2,8 @@
 #![no_main]
 #![no_std]
 
+mod time;
+
 extern crate cortex_m;
 #[macro_use]
 extern crate cortex_m_rt as rt;
@@ -11,12 +13,13 @@ extern crate stm32f103xx_hal as hal;
 extern crate embedded_hal;
 
 use rt::ExceptionFrame;
-use cortex_m::peripheral::DWT;
 
 use hal::prelude::*;
 use hal::stm32f103xx;
 use hal::delay::Delay;
 use embedded_hal::digital::OutputPin;
+
+use time::TimeStamp;
 
 entry!(main);
 
@@ -177,36 +180,7 @@ fn read_input() -> Input {
 }
 
 
-// ---------------
-// Time Handling code
-use hal::rcc::Clocks;
 
-#[derive(Clone, Copy)]
-struct TimeStamp(u32);
-
-// TODO: get time from device
-fn device_get_ticks() -> TimeStamp {
-	
-	TimeStamp(DWT::get_cycle_count())
-}
-
-fn device_get_clock_frequency() -> u32 {
-
-	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
-	let mut _rcc = _stm32f103.RCC.constrain();
-	let mut _flash = _stm32f103.FLASH.constrain();
-	let _clocks = _rcc.cfgr.freeze(& mut _flash.acr);
-
-	_clocks.sysclk().0
-}
-
-fn time_us_to_ticks(_clocks : &Clocks, us : u32) -> u32 {
-	us *(_clocks.sysclk().0 / 1000000)
-}
-
-fn time_ms_to_ticks(_clocks : &Clocks, ms : u32) -> u32 {
-	time_us_to_ticks(&_clocks, ms * 1000)
-}
 
 // This indicates s state and if active, since which tick
 enum State
@@ -230,7 +204,7 @@ fn update_state(_prev_state : State, _input_flag : bool) -> State {
 	if _input_flag  {
 		match _prev_state {
 			State::Active(_time) => _prev_state,
-			State::Inactive => State::Active(device_get_ticks()),
+			State::Inactive => State::Active(time::device_get_ticks()),
 		}
 	}
 	else {
@@ -274,10 +248,10 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : u32,
 //  * Turn_Left/
 //	  Turn_Right:	If turn signal is activated, the turn signal lights on the according side will blink
 //					with the defined frequency
-fn switch_turn_signals(_system_state : &System, _input : &Input, _clocks : &Clocks, _power_out : & mut PowerOutput)
+fn switch_turn_signals(_system_state : &System, _input : &Input, _clocks : &time::Clocks, _power_out : & mut PowerOutput)
 {
-	let current_time = device_get_ticks();
-	let _one_sec_in_ticks = time_ms_to_ticks(&_clocks, 1000);
+	let current_time = time::device_get_ticks();
+	let _one_sec_in_ticks = time::time_ms_to_ticks(&_clocks, 1000);
 
 	let _hazard_on = match _system_state.hazard {
 		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
@@ -368,7 +342,7 @@ fn switch_light_signals(_input : &Input, _power_out : & mut PowerOutput) {
 // Switches the power output based on the input and current system state and
 // returns the PowerOutput prefilled. The return value contains the state of the
 // Power output as it should be applied by the hardware. 
-fn switch_power_output(_system : &System, _input : &Input, _clock : &Clocks) -> PowerOutput {
+fn switch_power_output(_system : &System, _input : &Input, _clock : &time::Clocks) -> PowerOutput {
 	
 	let mut power_output = PowerOutput {
 		turn_left_front : false,
