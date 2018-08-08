@@ -1,6 +1,7 @@
 pub use time::TimeStamp;
 
 use time;
+use embedded_hal::digital::OutputPin;
 
 // This indicates s state and if active, since which tick
 pub enum State
@@ -13,7 +14,7 @@ pub enum State
 // state
 pub struct SystemState
 {
-	pub turn_left : State,
+    pub turn_left : State,
 	pub turn_right : State,
 	pub hazard : State,
 }
@@ -45,23 +46,6 @@ pub struct Input
 	side_stand : bool,
 }
 
-// This will be the translation for the harware channel number
-pub enum PowerChannel
-{
-	TurnLeftFront = 0,
-	TurnLeftRear = 1,
-	TurnRightFront = 2,
-	TurnRightRear = 3,
-	HeadLightParking = 4,
-	HeadLightLowerBeam = 5,
-	HeadLightFullBeam = 6,
-	RearLight = 7,
-	BrakeLight = 8,
-	Horn=9,
-
-	NumChannels = 10,
-}
-
 //fn initialize_power_channel(_channel : PowerChannel, )
 
 // This describes how the power ouptput needs to be swithed, which
@@ -79,6 +63,22 @@ pub struct PowerOutput
 	brake_light : bool,
 	horn : bool,
 }
+
+
+pub enum PowerChannel<'a>
+{
+    TurnLeftFront(&'a mut OutputPin),
+	TurnLeftRear(&'a mut OutputPin),
+	TurnRightFront(&'a mut OutputPin),
+	TurnRightRear(&'a mut OutputPin),
+	HeadLightParking(&'a mut OutputPin),
+	HeadLightLowerBeam(&'a mut OutputPin),
+	HeadLightFullBeam(&'a mut OutputPin),
+	RearLight(&'a mut OutputPin),
+	BrakeLight(&'a mut OutputPin),
+	Horn(&'a mut OutputPin),
+}
+
 
 // TODO. This will read the input data pins from the driver controlls
 // and fill in the Input structure
@@ -268,35 +268,39 @@ fn switch_power_output(_system : &SystemState, _input : &Input, _clock : &time::
 	power_output
 }
 
-fn apply_power_output(_power_out : PowerOutput) {
-	/*let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
-	let mut _rcc = _stm32f103.RCC.constrain();
-
-	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
-	let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
-
-	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh);
-	let mut channel0 = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);
-
-	//let mut channel : i32 = channel0;*/
+fn enable_pin(_pin : & mut OutputPin, _enable : bool) {
+	if _enable { 
+		_pin.set_high();
+	} else {
+		_pin.set_low();
+	}
 }
 
-pub fn tick(_system_state : SystemState, _clocks : time::Clocks) -> SystemState
+fn apply_power_output(_power_out : PowerOutput, _power_channels : & mut [PowerChannel]) {
+	for channel in _power_channels {
+        match channel {
+            PowerChannel::TurnLeftFront(_pin) => enable_pin(*_pin, _power_out.turn_left_front),
+            PowerChannel::TurnRightFront(_pin) => enable_pin(*_pin, _power_out.turn_right_front),
+            PowerChannel::TurnLeftRear(_pin) => enable_pin(*_pin, _power_out.turn_left_rear),
+            PowerChannel::TurnRightRear(_pin) => enable_pin(*_pin, _power_out.turn_right_rear),
+            PowerChannel::HeadLightParking(_pin) => enable_pin(*_pin, _power_out.head_light_parking),
+            PowerChannel::HeadLightLowerBeam(_pin) => enable_pin(*_pin, _power_out.head_light_lowbeam),
+            PowerChannel::HeadLightFullBeam(_pin) => enable_pin(*_pin, _power_out.head_light_fullbeam),
+            PowerChannel::RearLight(_pin) => enable_pin(*_pin, _power_out.rear_light),
+            PowerChannel::BrakeLight(_pin) => enable_pin(*_pin, _power_out.brake_light),
+            PowerChannel::Horn(_pin) => enable_pin(*_pin, _power_out.horn),
+        }
+    }
+}
+
+pub fn tick(_system_state : SystemState, _power_channels : & mut [PowerChannel], _clocks : time::Clocks) -> SystemState
 {
     let _input = read_input();
 
     let _new_system_state = update_system_state(_system_state, &_input);
     let _power_out = switch_power_output(&_new_system_state, &_input, &_clocks);
     
-    if _power_out.turn_left_front {
-//        channel0_on.set_high();
-//        led.set_low();
-    } else {
-//        channel0_on.set_low();
-//        led.set_high();	
-    }
-
-    apply_power_output(_power_out);
+    apply_power_output(_power_out, _power_channels);
     _new_system_state
     
     // TEST
