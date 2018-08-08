@@ -62,6 +62,8 @@ pub struct PowerOutput
 	rear_light : bool,
 	brake_light : bool,
 	horn : bool,
+    unused0 : bool,
+    unused1 : bool,
 }
 
 
@@ -77,6 +79,8 @@ pub enum PowerChannel<'a>
 	RearLight(&'a mut OutputPin),
 	BrakeLight(&'a mut OutputPin),
 	Horn(&'a mut OutputPin),
+    Unused0(&'a mut OutputPin),
+    Unused1(&'a mut OutputPin),
 }
 
 
@@ -260,6 +264,8 @@ fn switch_power_output(_system : &SystemState, _input : &Input, _clock : &time::
 		rear_light : false,
 		brake_light : _input.brake_front || _input.brake_rear,
 		horn : _input.horn,
+        unused0 : false,
+        unused1 : false,
 	};
 
 	switch_turn_signals(&_system, &_input, &_clock, & mut power_output);	
@@ -289,6 +295,8 @@ fn apply_power_output(_power_out : PowerOutput, _power_channels : & mut [PowerCh
             PowerChannel::RearLight(_pin) => enable_pin(*_pin, _power_out.rear_light),
             PowerChannel::BrakeLight(_pin) => enable_pin(*_pin, _power_out.brake_light),
             PowerChannel::Horn(_pin) => enable_pin(*_pin, _power_out.horn),
+            PowerChannel::Unused0(_pin) => enable_pin(*_pin, _power_out.unused0),
+            PowerChannel::Unused1(_pin) => enable_pin(*_pin, _power_out.unused1),
         }
     }
 }
@@ -302,19 +310,4 @@ pub fn tick(_system_state : SystemState, _power_channels : & mut [PowerChannel],
     
     apply_power_output(_power_out, _power_channels);
     _new_system_state
-    
-    // TEST
-    //delay.delay_ms(500_u16);
-    //led.set_high();
-    //delay.delay_ms(500_u16);
-    //led.set_low();
-
-    // 3999753
-
-    
-    // apply power state to hardware
-
-    // read diagnosis from PFETs
-
-    // output telemetry data
 }

@@ -17,7 +17,6 @@ use rt::ExceptionFrame;
 
 use hal::prelude::*;
 use hal::stm32f103xx;
-use hal::delay::Delay;
 use logic::PowerChannel;
 
 entry!(main);
@@ -55,8 +54,8 @@ fn main() -> ! {
 	let mut channel7 = gpiob.pb11.into_push_pull_output(& mut gpiob.crh);	channel7.set_low();
 	let mut channel8 = gpiob.pb12.into_push_pull_output(& mut gpiob.crh);	channel8.set_low();
 	let mut channel9 = gpiob.pb13.into_push_pull_output(& mut gpiob.crh);	channel9.set_low();
-	//let mut channel10 = gpiob.pb14.into_push_pull_output(& mut gpiob.crh);
-	//let mut channel11 = gpiob.pb15.into_push_pull_output(& mut gpiob.crh);	
+	let mut channel10 = gpiob.pb14.into_push_pull_output(& mut gpiob.crh);
+	let mut channel11 = gpiob.pb15.into_push_pull_output(& mut gpiob.crh);	
 
 	// create the mapping
 	let mut power_channels = [ 
@@ -70,10 +69,10 @@ fn main() -> ! {
 		PowerChannel::RearLight			(& mut channel7),
 		PowerChannel::BrakeLight		(& mut channel8),
 		PowerChannel::Horn				(& mut channel9),
+		PowerChannel::Unused0			(& mut channel10),
+		PowerChannel::Unused1			(& mut channel11),
 	];
 
-
-	let mut delay = Delay::new(_cortex_m.SYST, _clocks);
 
 	// setup the turn signal state
 	let mut _system_state = logic::SystemState {
@@ -83,7 +82,12 @@ fn main() -> ! {
 	};
 
     loop {
-    	_system_state = logic::tick( _system_state, & mut power_channels, _clocks);
+    	
+		_system_state = logic::tick( _system_state, & mut power_channels, _clocks);
+
+		// read diagnosis from PFETs
+
+    	// output telemetry data
     }
  }
 
