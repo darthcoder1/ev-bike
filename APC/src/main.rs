@@ -54,8 +54,8 @@ fn main() -> ! {
 	let mut channel7 = gpiob.pb11.into_push_pull_output(& mut gpiob.crh);	channel7.set_low();
 	let mut channel8 = gpiob.pb12.into_push_pull_output(& mut gpiob.crh);	channel8.set_low();
 	let mut channel9 = gpiob.pb13.into_push_pull_output(& mut gpiob.crh);	channel9.set_low();
-	let mut channel10 = gpiob.pb14.into_push_pull_output(& mut gpiob.crh);
-	let mut channel11 = gpiob.pb15.into_push_pull_output(& mut gpiob.crh);	
+	let mut channel10 = gpiob.pb14.into_push_pull_output(& mut gpiob.crh); 	channel10.set_low();
+	let mut channel11 = gpiob.pb15.into_push_pull_output(& mut gpiob.crh);  channel11.set_low();	
 
 	// create the mapping
 	let mut power_channels = [ 
