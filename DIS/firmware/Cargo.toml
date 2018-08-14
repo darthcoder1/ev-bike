@@ -6,3 +6,8 @@ authors = ["Martin Zielinski <darthcoder1@gmail.com>"]
 [dependencies]
 videocore = "*"
 egl = "*"
+# disabled as the crate on crate.io is having a bug, while the repo is working fine
+# opengles  = "0.1.2"
+
+[dependencies.opengles]
+path = "../../../../External/rust-opengles"

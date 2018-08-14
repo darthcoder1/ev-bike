@@ -2,4 +2,5 @@
 linker = "arm-linux-gnueabihf-gcc"
 rustflags = [
     "-C", "link-arg=-L../sysroot/opt/vc/lib/",
+    "-C", "link-arg=-lGLESv2",
 ]
