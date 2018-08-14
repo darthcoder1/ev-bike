@@ -34,7 +34,8 @@ the state of the inputs to the ARM Cortex M3 via SPI.
 ## Outputs
 
 The ouput has 12 channel. The software takes completely care of the channel
-usage, so they are fully programmable.
+usage, so they are fully programmable. The outputs are switched by a BTS432E2 powerFET 
+per channel.
 
 * Turn signal left front
 * Turn signal right front
