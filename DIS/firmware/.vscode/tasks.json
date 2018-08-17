@@ -1,0 +1,15 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "runner": "terminal",
+    "tasks": [
+        {
+            "label": "deploy",
+            "command": "scp",
+            "args": [
+                "${workspaceRoot}/target/armv7-unknown-linux-gnueabihf/debug/firmware martinz@192.168.178.29:~/firmware"
+            ]
+        }
+    ]
+}

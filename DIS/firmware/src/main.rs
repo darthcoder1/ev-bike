@@ -1,4 +1,5 @@
 #![deny(unsafe_code)]
+#![allow(non_snake_case)]
 
 extern crate videocore;
 
@@ -15,6 +16,6 @@ fn main() {
 
     let glContext = ebola::InitEGL(&mut window);
 
-    ebola::texture::LoadTexture("blka");
+    let tex = ebola::texture::LoadTexture("~/firmware/data/test.jpg", 0);
     ebola::TickEGL(glContext);
 }

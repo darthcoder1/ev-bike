@@ -1,4 +1,5 @@
 #![feature(duration_as_u128)]
+#![allow(non_snake_case)]
 
 pub mod texture;
 
@@ -154,8 +155,9 @@ pub fn TickEGL(context : GLContext) {
 
     let a_color = gl::get_attrib_location(shader, "a_color");
     let a_vertex = gl::get_attrib_location(shader, "a_vertex");
+    let a_texcoord = gl::get_attrib_location(shader, "a_texcoord");
 
-    let (vertex_vbo, color_vbo) = SetupGeometry();
+    let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();
 
     let mut delta_time_ms = 0;
     
@@ -176,11 +178,17 @@ pub fn TickEGL(context : GLContext) {
         gl::bind_buffer(gl::GL_ARRAY_BUFFER, vertex_vbo);
         gl::vertex_attrib_pointer_offset(a_vertex as gl::GLuint, 2, gl::GL_FLOAT, false, 0, 0);
 
+        // bind texcoord buffer
+        gl::enable_vertex_attrib_array(a_texcoord as gl::GLuint);
+        gl::bind_buffer(gl::GL_ARRAY_BUFFER, texcoord_vbo);
+        gl::vertex_attrib_pointer_offset(a_texcoord as gl::GLuint, 2, gl::GL_FLOAT, false, 0, 0);
+
         gl::draw_arrays(gl::GL_TRIANGLE_FAN, 0, 3);
 
         // disable attributes
         gl::disable_vertex_attrib_array(a_color as gl::GLuint);
         gl::disable_vertex_attrib_array(a_vertex as gl::GLuint);
+        gl::disable_vertex_attrib_array(a_texcoord as gl::GLuint);
 
         // unbind buffers
         gl::bind_buffer(gl::GL_ARRAY_BUFFER, 0);
@@ -203,9 +211,12 @@ pub fn SetupShaders() -> gl::GLuint {
     gl::shader_source(frag_prog, 
     "
     varying vec4 v_color;
+    varying vec2 v_texCoord;
+    
+    uniform sampler2D tex0;
 
     void main() {
-        gl_FragColor = v_color;
+        gl_FragColor = texture2d(tex0, v_texCoord).bgra;
     }
     ".as_bytes());
 
@@ -236,8 +247,8 @@ pub fn SetupShaders() -> gl::GLuint {
     program
 }
 
-pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint) {
-    let vbos = gl::gen_buffers(2);
+pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint, gl::GLuint) {
+    let vbos = gl::gen_buffers(3);
     
     let vertices = [ -1.0, -1.0,                // bottom left
                       1.0, -1.0,                // bottom right
@@ -253,5 +264,12 @@ pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint) {
     gl::bind_buffer(gl::GL_ARRAY_BUFFER, vbos[1]);
     gl::buffer_data(gl::GL_ARRAY_BUFFER, &colors, gl::GL_STATIC_DRAW);
 
-    (vbos[0], vbos[1])
+    let texCoords = [ -1.0, -1.0,                // bottom left
+                      1.0, -1.0,                // bottom right
+                      0.0,  0.0 ] as [f32;6];   // top
+
+    gl::bind_buffer(gl::GL_ARRAY_BUFFER, vbos[2]);
+    gl::buffer_data(gl::GL_ARRAY_BUFFER, &texCoords, gl::GL_STATIC_DRAW);
+
+    (vbos[0], vbos[1], vbos[2])
 }

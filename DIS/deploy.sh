@@ -1,2 +1,3 @@
 #!/bin/bash
-scp ./firmware/target/armv7-unknown-linux-gnueabihf/debug/firmware martinz@dis-proto:~/firmware
+scp -p ./firmware/target/armv7-unknown-linux-gnueabihf/debug/firmware martinz@dis-proto:~/firmware/firmware
+scp -pr ./data martinz@dis-proto:~/firmware/data
