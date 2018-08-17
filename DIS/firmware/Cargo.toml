@@ -3,6 +3,14 @@ name = "firmware"
 version = "0.1.0"
 authors = ["Martin Zielinski <darthcoder1@gmail.com>"]
 
+[lib]
+name = "ebola"
+path = "src/ebola/lib.rs"
+
+[[bin]]
+name = "firmware"
+path = "src/main.rs"
+
 [dependencies]
 videocore = "*"
 egl = "*"
