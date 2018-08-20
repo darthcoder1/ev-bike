@@ -145,7 +145,7 @@ pub fn InitEGL(window : & mut Window) -> GLContext {
     }
 }
 
-pub fn TickEGL(context : GLContext) {
+pub fn RunMainLoop(context : GLContext) {
     
     let screen_res = bcm_host::graphics_get_display_size(0).unwrap();
 

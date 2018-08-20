@@ -2,12 +2,13 @@
 #![allow(non_snake_case)]
 
 extern crate videocore;
-
 extern crate ebola;
 
 use ebola::texture;
-
 use videocore::bcm_host;
+
+
+const DATA_PATH : & str = "/opt/firmware/data" ;
 
 fn main() {
     bcm_host::init();
@@ -16,6 +17,8 @@ fn main() {
 
     let glContext = ebola::InitEGL(&mut window);
 
-    let tex = ebola::texture::LoadTexture("~/firmware/data/test.jpg", 0);
-    ebola::TickEGL(glContext);
+    let texturePath = format!("{}/{}", DATA_PATH, "/test.jpg");
+    let tex = ebola::texture::LoadTexture(& texturePath, 0);
+    
+    ebola::RunMainLoop(glContext);
 }
