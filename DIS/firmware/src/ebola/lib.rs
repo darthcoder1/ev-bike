@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 
 pub mod texture;
+pub mod renderer;
 
 extern crate videocore;
 extern crate egl;
@@ -148,7 +149,10 @@ pub fn InitEGL(window : & mut Window) -> GLContext {
     }
 }
 
-pub fn RunMainLoop(context : GLContext) {
+
+
+
+pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
     
     let screen_res = bcm_host::graphics_get_display_size(0).unwrap();
 
@@ -158,7 +162,8 @@ pub fn RunMainLoop(context : GLContext) {
 
     let a_color = gl::get_attrib_location(shader, "a_color");
     let a_vertex = gl::get_attrib_location(shader, "a_vertex");
-    let a_texcoord = gl::get_attrib_location(shader, "a_texcoord");
+    let a_texcoord = gl::get_att
+    rib_location(shader, "a_texcoord");
 
     let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();
 
@@ -168,7 +173,7 @@ pub fn RunMainLoop(context : GLContext) {
 
         let time_now = Instant::now();
    
-        gl::clear_color(1.0, 1.0, 1.0, 1.0);
+        gl::clear_color(renderCtx.clearColor[0] , renderCtx.clearColor[1], renderCtx.clearColor[2], renderCtx.clearColor[3]);
         gl::clear(gl::GL_COLOR_BUFFER_BIT);
 
         // bind color buffer
@@ -197,7 +202,7 @@ pub fn RunMainLoop(context : GLContext) {
         gl::bind_buffer(gl::GL_ARRAY_BUFFER, 0);
 
         // swap
-        egl::swap_buffers(context.display, context.surface);
+        egl::swap_buffers(glCtx.display, glCtx.surface);
 
         delta_time_ms = time_now.elapsed().as_millis();
         println!("DeltaTime: {}", delta_time_ms as u64);
@@ -277,78 +282,3 @@ pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint, gl::GLuint) {
     (vbos[0], vbos[1], vbos[2])
 }
 
-pub struct ShaderProgram(gl::GLuint);
-pub struct ShaderCode(gl::GLuint);
-
-
-pub struct ShaderStage {
-    program : ShaderProgram,
-    fragShader : ShaderCode,
-    vertShader : ShaderCode,
-}
-
-impl Default for ShaderStage 
-{
-    fn default() -> ShaderStage {
-        ShaderStage {
-            program: ShaderProgram(0),
-            fragShader: ShaderCode(0),
-            vertShader: ShaderCode(0),
-        }
-    }
-}
-
-// LoadShader loads the shaderfiles located at the specified path.
-// The path must omit the file extension. Then the system will look
-// for '<path>.vert' and '<path>.frag' and load them accordingly.
-pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
-
-    let mut vertPath = path.to_owned();
-    vertPath.push_str(".vert");
-    
-    let mut fragPath = path.to_owned();
-    fragPath.push_str(".frag");
-
-    if (!Path::new(& vertPath).exists() || !Path::new(& fragPath).exists()) 
-    {
-        let errString = "Load shader for {} failed. Failed to find vertex/fragment shader.";
-        panic!(errString);
-        return Err(());
-    }
-
-    let program = gl::create_program();
-
-    // setup fragment shader
-    let fragShader = LoadShaderInternal(& fragPath, gl::GL_FRAGMENT_SHADER).unwrap();
-    gl::attach_shader(program, fragShader);
-    // setup vertex shader
-    let vertShader = LoadShaderInternal(& vertPath, gl::GL_VERTEX_SHADER).unwrap();
-    gl::attach_shader(program, vertShader);
-
-    gl::link_program(program);
-    gl::use_program(program);
-
-    Ok(ShaderStage{
-        program: ShaderProgram(program),
-        fragShader: ShaderCode(fragShader),
-        vertShader: ShaderCode(vertShader),
-    })
-}
-
-fn LoadShaderInternal(path : & str, shaderType : gl::GLenum) -> Result<gl::GLuint, ()>
-{
-    let shaderCode = match fs::read_to_string(path) {
-        Ok(content) => content,
-        Err(error) => {
-            panic!("Failed to load shader: {}", error);
-            return Err(());
-        }
-    };
-    
-    let shader = gl::create_shader(shaderType);
-
-    gl::shader_source(shader, shaderCode.as_bytes());
-    gl::compile_shader(shader);
-
-    Ok(shader)
-}

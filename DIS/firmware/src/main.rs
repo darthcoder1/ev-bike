@@ -19,6 +19,12 @@ fn main() {
 
     let texturePath = format!("{}/{}", DATA_PATH, "/test.jpg");
     let tex = ebola::texture::LoadTexture(& texturePath, 0);
-    
-    ebola::RunMainLoop(glContext);
+
+    let shaderPath = format!("{}/{}", DATA_PATH, "/default");
+    let defaultStage = ebola::LoadShaderStage(& shaderPath);
+
+    ebola::RunMainLoop(ebola::Context {s
+                                    shaderStages: vec![defaultStage],
+                                }
+                       glContext);
 }
