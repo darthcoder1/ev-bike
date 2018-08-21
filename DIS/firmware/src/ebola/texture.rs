@@ -3,7 +3,6 @@
 extern crate image;
 
 use std::path::Path;
-use std::os::raw::c_void;
 
 use opengles::glesv2 as gl;
 

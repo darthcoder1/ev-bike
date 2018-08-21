@@ -19,7 +19,7 @@
                 "showReuseMessage": false
             },
             "problemMatcher": [
-                "$rustc"
+                "$rustc",
             ]
         }
     ]

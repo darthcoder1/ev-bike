@@ -1,8 +1,13 @@
 #![allow(non_snake_case)]
 
+use std::path::Path;
+use std::fs;
+
+use opengles::glesv2 as gl;
+
 pub struct RenderContext {
-    shaderStages: Vec<ShaderStage>,
-    clearColor : [float;4],
+    pub shaderStages: Vec<ShaderStage>,
+    pub clearColor : [f32;4],
 }
 
 
@@ -18,9 +23,9 @@ pub struct RenderCommand {
 impl RenderCommand {
     
     // Binds the specified data buffer to the attribute
-    fn SetupBinding(& self, attributeName: & str, GL) {
+    //fn SetupBinding(& self, attributeName: & str, GL) {
 
-    }
+    //}
 }
 
 
@@ -62,11 +67,10 @@ pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
     let mut fragPath = path.to_owned();
     fragPath.push_str(".frag");
 
-    if (!Path::new(& vertPath).exists() || !Path::new(& fragPath).exists()) 
+    if !Path::new(& vertPath).exists() || !Path::new(& fragPath).exists()
     {
         let errString = "Load shader for {} failed. Failed to find vertex/fragment shader.";
         panic!(errString);
-        return Err(());
     }
 
     let program = gl::create_program();
@@ -94,7 +98,6 @@ fn LoadShaderInternal(path : & str, shaderType : gl::GLenum) -> Result<gl::GLuin
         Ok(content) => content,
         Err(error) => {
             panic!("Failed to load shader: {}", error);
-            return Err(());
         }
     };
     

@@ -4,7 +4,6 @@
 extern crate videocore;
 extern crate ebola;
 
-use ebola::texture;
 use videocore::bcm_host;
 
 
@@ -21,10 +20,13 @@ fn main() {
     let tex = ebola::texture::LoadTexture(& texturePath, 0);
 
     let shaderPath = format!("{}/{}", DATA_PATH, "/default");
-    let defaultStage = ebola::LoadShaderStage(& shaderPath);
+    let defaultStage = ebola::renderer::LoadShaderStage(& shaderPath).unwrap();
 
-    ebola::RunMainLoop(ebola::Context {s
-                                    shaderStages: vec![defaultStage],
-                                }
+    let shaderStages = vec![defaultStage];
+
+    ebola::RunMainLoop(ebola::renderer::RenderContext  {
+                                    shaderStages: shaderStages,
+                                    clearColor: [1.0, 0.0, 0.0, 1.0],
+                                },
                        glContext);
 }

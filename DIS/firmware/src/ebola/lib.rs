@@ -10,10 +10,6 @@ extern crate opengles;
 
 use std::ptr;
 use std::time::Instant;
-use std::fs;
-use std::fs::File;
-use std::path::Path;
-use std::io::prelude::*;
 
 use videocore::bcm_host;
 use videocore::dispmanx;
@@ -162,8 +158,7 @@ pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
 
     let a_color = gl::get_attrib_location(shader, "a_color");
     let a_vertex = gl::get_attrib_location(shader, "a_vertex");
-    let a_texcoord = gl::get_att
-    rib_location(shader, "a_texcoord");
+    let a_texcoord = gl::get_attrib_location(shader, "a_texcoord");
 
     let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();
 
