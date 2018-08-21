@@ -11,21 +11,87 @@ pub struct RenderContext {
 }
 
 
-struct AttributeBinding {
+#[derive(Clone)]
+pub struct AttributeBinding {
+
+    // Handle to the attribute to bind to
     attributeHndl : gl::GLuint,
+    
+    // Handle to the data buffer (VBO)
     dataBufferHndl : gl::GLuint,
+    
+    // Number of components
+    // This is the stride of the data. 
+    numComponents: u32,
+}
+
+pub enum PrimitivesType {
+    Points,
+    LineStrip,
+    LineLoop,
+    Lines,
+    TriangleStrip,
+    TriangleFan,
+    Triangles,
+}
+
+fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
+    match vit {
+        PrimitivesType::Points => gl::GL_POINTS,
+        PrimitivesType::LineStrip => gl::GL_LINE_STRIP,
+        PrimitivesType::LineLoop => gl::GL_LINE_LOOP,
+        PrimitivesType::Lines => gl::GL_LINES,
+        PrimitivesType::TriangleStrip => gl::GL_TRIANGLE_STRIP,
+        PrimitivesType::TriangleFan => gl::GL_TRIANGLE_FAN,
+        PrimitivesType::Triangles => gl::GL_TRIANGLES,
+    }
 }
 
 pub struct RenderCommand {
     attributeBindings : Vec<AttributeBinding>,
+    primitiveType : PrimitivesType,
+    numPrimitives: u32,
 }
 
 impl RenderCommand {
     
-    // Binds the specified data buffer to the attribute
-    //fn SetupBinding(& self, attributeName: & str, GL) {
+    pub fn AddBindings(& mut self, bindings : & [AttributeBinding]) {
+        
+        self.attributeBindings.extend_from_slice(bindings);
+    }
 
-    //}
+    pub fn Initialize(& mut self, primitiveType : PrimitivesType, numPrimitives : u32) {
+        self.primitiveType = primitiveType;
+        self.numPrimitives = numPrimitives;
+    }
+
+
+    pub fn Execute(& self) {
+        self.Bind();
+        self.Draw(& self.primitiveType, self.numPrimitives);
+        self.Unbind();
+    }
+
+    fn Bind(& self) {
+        for binding in self.attributeBindings.iter() {
+            // bind buffer
+            gl::enable_vertex_attrib_array(binding.attributeHndl);
+            gl::bind_buffer(gl::GL_ARRAY_BUFFER, binding.dataBufferHndl);
+            gl::vertex_attrib_pointer_offset(binding.attributeHndl, binding.numComponents as gl::GLint, gl::GL_FLOAT, false, 0, 0);
+        }
+    }
+
+    fn Draw(& self, primitvesType : & PrimitivesType, numPrimitives : u32) {
+        gl::draw_arrays(ToGL(& primitvesType), 0, numPrimitives as gl::GLint);
+    }
+
+    fn Unbind(& self) {
+        for binding in self.attributeBindings.iter() {
+            gl::disable_vertex_attrib_array(binding.attributeHndl);
+        }
+
+         gl::bind_buffer(gl::GL_ARRAY_BUFFER, 0);
+    }
 }
 
 
@@ -43,6 +109,21 @@ pub struct ShaderDataHndl(gl::GLuint);
 
 impl ShaderStage {
     
+    fn CreateBinding(&self, attributeName : & str, dataBuffer : ShaderDataHndl, componentsPerVertex : u32) -> Result<AttributeBinding, ()> {
+        
+        let attributeHndl = gl::get_attrib_location(self.program.0, attributeName) as gl::GLuint;
+
+        if attributeHndl == gl::GL_INVALID_OPERATION
+        {
+            return Err(());
+        }
+
+        Ok(AttributeBinding {
+            attributeHndl: attributeHndl,
+            dataBufferHndl: dataBuffer.0,
+            numComponents: componentsPerVertex,
+        })
+    }
 }
 
 impl Default for ShaderStage 
