@@ -9,6 +9,10 @@ extern crate opengles;
 
 use std::ptr;
 use std::time::Instant;
+use std::fs;
+use std::fs::File;
+use std::path::Path;
+use std::io::prelude::*;
 
 use videocore::bcm_host;
 use videocore::dispmanx;
@@ -25,7 +29,6 @@ use egl::{ EGLConfig,
            EGLSurface };
 
 use opengles::glesv2 as gl;
-
 
 // contains all context relevant EGL data
 pub struct GLContext {
@@ -272,4 +275,80 @@ pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint, gl::GLuint) {
     gl::buffer_data(gl::GL_ARRAY_BUFFER, &texCoords, gl::GL_STATIC_DRAW);
 
     (vbos[0], vbos[1], vbos[2])
+}
+
+pub struct ShaderProgram(gl::GLuint);
+pub struct ShaderCode(gl::GLuint);
+
+
+pub struct ShaderStage {
+    program : ShaderProgram,
+    fragShader : ShaderCode,
+    vertShader : ShaderCode,
+}
+
+impl Default for ShaderStage 
+{
+    fn default() -> ShaderStage {
+        ShaderStage {
+            program: ShaderProgram(0),
+            fragShader: ShaderCode(0),
+            vertShader: ShaderCode(0),
+        }
+    }
+}
+
+// LoadShader loads the shaderfiles located at the specified path.
+// The path must omit the file extension. Then the system will look
+// for '<path>.vert' and '<path>.frag' and load them accordingly.
+pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
+
+    let mut vertPath = path.to_owned();
+    vertPath.push_str(".vert");
+    
+    let mut fragPath = path.to_owned();
+    fragPath.push_str(".frag");
+
+    if (!Path::new(& vertPath).exists() || !Path::new(& fragPath).exists()) 
+    {
+        let errString = "Load shader for {} failed. Failed to find vertex/fragment shader.";
+        panic!(errString);
+        return Err(());
+    }
+
+    let program = gl::create_program();
+
+    // setup fragment shader
+    let fragShader = LoadShaderInternal(& fragPath, gl::GL_FRAGMENT_SHADER).unwrap();
+    gl::attach_shader(program, fragShader);
+    // setup vertex shader
+    let vertShader = LoadShaderInternal(& vertPath, gl::GL_VERTEX_SHADER).unwrap();
+    gl::attach_shader(program, vertShader);
+
+    gl::link_program(program);
+    gl::use_program(program);
+
+    Ok(ShaderStage{
+        program: ShaderProgram(program),
+        fragShader: ShaderCode(fragShader),
+        vertShader: ShaderCode(vertShader),
+    })
+}
+
+fn LoadShaderInternal(path : & str, shaderType : gl::GLenum) -> Result<gl::GLuint, ()>
+{
+    let shaderCode = match fs::read_to_string(path) {
+        Ok(content) => content,
+        Err(error) => {
+            panic!("Failed to load shader: {}", error);
+            return Err(());
+        }
+    };
+    
+    let shader = gl::create_shader(shaderType);
+
+    gl::shader_source(shader, shaderCode.as_bytes());
+    gl::compile_shader(shader);
+
+    Ok(shader)
 }
