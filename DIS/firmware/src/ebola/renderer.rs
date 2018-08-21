@@ -8,6 +8,7 @@ use opengles::glesv2 as gl;
 pub struct RenderContext {
     pub shaderStages: Vec<ShaderStage>,
     pub clearColor : [f32;4],
+    pub renderCommands : Vec<Vec<RenderCommand>>,
 }
 
 
@@ -55,16 +56,13 @@ pub struct RenderCommand {
 
 impl RenderCommand {
     
-    pub fn AddBindings(& mut self, bindings : & [AttributeBinding]) {
-        
-        self.attributeBindings.extend_from_slice(bindings);
+    pub fn new (attributeBindings : Vec<AttributeBinding>, primitiveType : PrimitivesType, numPrimitives : u32) -> RenderCommand {
+        RenderCommand {
+            attributeBindings: attributeBindings,
+            primitiveType: primitiveType,
+            numPrimitives: numPrimitives,
+        }
     }
-
-    pub fn Initialize(& mut self, primitiveType : PrimitivesType, numPrimitives : u32) {
-        self.primitiveType = primitiveType;
-        self.numPrimitives = numPrimitives;
-    }
-
 
     pub fn Execute(& self) {
         self.Bind();
@@ -109,20 +107,32 @@ pub struct ShaderDataHndl(gl::GLuint);
 
 impl ShaderStage {
     
-    fn CreateBinding(&self, attributeName : & str, dataBuffer : ShaderDataHndl, componentsPerVertex : u32) -> Result<AttributeBinding, ()> {
+    pub fn CreateBinding(&self, attributeName : & str, dataBuffer : u32, componentsPerVertex : u32) -> AttributeBinding {
         
         let attributeHndl = gl::get_attrib_location(self.program.0, attributeName) as gl::GLuint;
 
         if attributeHndl == gl::GL_INVALID_OPERATION
         {
-            return Err(());
+            panic!("Failed to create binding for '{}'", attributeName);
         }
 
-        Ok(AttributeBinding {
+        AttributeBinding {
             attributeHndl: attributeHndl,
-            dataBufferHndl: dataBuffer.0,
+            dataBufferHndl: dataBuffer,
             numComponents: componentsPerVertex,
-        })
+        }
+    }
+}
+
+ pub fn Render(shaderStages : & Vec<ShaderStage>, commands : & Vec<Vec<RenderCommand>>) {
+        
+    for (i, stage) in shaderStages.iter().enumerate() {
+        
+        let commands = & commands[i];
+        
+        for cmd in commands.iter() {
+            cmd.Execute();
+        }
     }
 }
 

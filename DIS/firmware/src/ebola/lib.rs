@@ -146,22 +146,14 @@ pub fn InitEGL(window : & mut Window) -> GLContext {
 }
 
 
-
-
 pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
     
     let screen_res = bcm_host::graphics_get_display_size(0).unwrap();
 
     gl::viewport(0, 0, screen_res.width as i32, screen_res.height as i32);
 
-    let shader = SetupShaders();
-
-    let a_color = gl::get_attrib_location(shader, "a_color");
-    let a_vertex = gl::get_attrib_location(shader, "a_vertex");
-    let a_texcoord = gl::get_attrib_location(shader, "a_texcoord");
-
-    let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();
-
+    let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();    
+    
     let mut delta_time_ms = 0;
     
     loop {
@@ -170,32 +162,8 @@ pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
    
         gl::clear_color(renderCtx.clearColor[0] , renderCtx.clearColor[1], renderCtx.clearColor[2], renderCtx.clearColor[3]);
         gl::clear(gl::GL_COLOR_BUFFER_BIT);
-
-        // bind color buffer
-        gl::enable_vertex_attrib_array(a_color as gl::GLuint);
-        gl::bind_buffer(gl::GL_ARRAY_BUFFER, color_vbo);
-        gl::vertex_attrib_pointer_offset(a_color as gl::GLuint, 3, gl::GL_FLOAT, false, 0, 0);
-
-        // bind vertex buffer
-        gl::enable_vertex_attrib_array(a_vertex as gl::GLuint);
-        gl::bind_buffer(gl::GL_ARRAY_BUFFER, vertex_vbo);
-        gl::vertex_attrib_pointer_offset(a_vertex as gl::GLuint, 2, gl::GL_FLOAT, false, 0, 0);
-
-        // bind texcoord buffer
-        gl::enable_vertex_attrib_array(a_texcoord as gl::GLuint);
-        gl::bind_buffer(gl::GL_ARRAY_BUFFER, texcoord_vbo);
-        gl::vertex_attrib_pointer_offset(a_texcoord as gl::GLuint, 2, gl::GL_FLOAT, false, 0, 0);
-
-        gl::draw_arrays(gl::GL_TRIANGLE_FAN, 0, 3);
-
-        // disable attributes
-        gl::disable_vertex_attrib_array(a_color as gl::GLuint);
-        gl::disable_vertex_attrib_array(a_vertex as gl::GLuint);
-        gl::disable_vertex_attrib_array(a_texcoord as gl::GLuint);
-
-        // unbind buffers
-        gl::bind_buffer(gl::GL_ARRAY_BUFFER, 0);
-
+ 
+        renderer::Render(& renderCtx.shaderStages, & renderCtx.renderCommands);
         // swap
         egl::swap_buffers(glCtx.display, glCtx.surface);
 
@@ -204,51 +172,7 @@ pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
     }
 }
 
-pub fn SetupShaders() -> gl::GLuint {
-    
-    let program = gl::create_program();
 
-    // setup fragment shader
-    let frag_prog = gl::create_shader(gl::GL_FRAGMENT_SHADER);
-
-    gl::shader_source(frag_prog, 
-    "
-    varying vec4 v_color;
-    varying vec2 v_texCoord;
-    
-    uniform sampler2D tex0;
-
-    void main() {
-        gl_FragColor = texture2d(tex0, v_texCoord).bgra;
-    }
-    ".as_bytes());
-
-    gl::compile_shader(frag_prog);
-    gl::attach_shader(program, frag_prog);
-
-    // setup vertex shader
-    let vert_prog = gl::create_shader(gl::GL_VERTEX_SHADER);
-
-    gl::shader_source(vert_prog, 
-    "
-    attribute vec4  a_color;
-    attribute vec4  a_vertex;
-    varying vec4    v_color;
-
-    void main() {
-        gl_Position = a_vertex;
-        v_color = a_color;
-    }".as_bytes());
-
-    gl::compile_shader(vert_prog);
-    gl::attach_shader(program, vert_prog);
-
-    // link
-    gl::link_program(program);
-    gl::use_program(program);
-
-    program
-}
 
 pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint, gl::GLuint) {
     let vbos = gl::gen_buffers(3);
