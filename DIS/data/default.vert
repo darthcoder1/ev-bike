@@ -15,5 +15,4 @@ void main()
     
     gl_Position = transformedPos;
     v_color = a_color;
-
 }
