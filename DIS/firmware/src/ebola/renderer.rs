@@ -36,8 +36,8 @@ pub enum PrimitivesType {
     Triangles,
 }
 
-fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
-    match vit {
+pub fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
+    match *vit {
         PrimitivesType::Points => gl::GL_POINTS,
         PrimitivesType::LineStrip => gl::GL_LINE_STRIP,
         PrimitivesType::LineLoop => gl::GL_LINE_LOOP,
@@ -48,6 +48,8 @@ fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
     }
 }
 
+////////////////////////////////////
+// Render Command
 pub struct RenderCommand {
     attributeBindings : Vec<AttributeBinding>,
     primitiveType : PrimitivesType,
@@ -72,7 +74,7 @@ impl RenderCommand {
 
     fn Bind(& self) {
         for binding in self.attributeBindings.iter() {
-            // bind buffer
+            
             gl::enable_vertex_attrib_array(binding.attributeHndl);
             gl::bind_buffer(gl::GL_ARRAY_BUFFER, binding.dataBufferHndl);
             gl::vertex_attrib_pointer_offset(binding.attributeHndl, binding.numComponents as gl::GLint, gl::GL_FLOAT, false, 0, 0);
@@ -93,6 +95,63 @@ impl RenderCommand {
 }
 
 
+////////////////////////////////////
+// GPUBuffer
+
+pub enum GPUBufferTarget {
+    Array,
+    ElementArray,
+}
+
+pub enum GPUBufferUsage {
+    Stream,
+    Static,
+    Dynamic,
+}
+
+pub struct GPUBuffer {
+
+    pub handle : gl::GLuint,
+    target : GPUBufferTarget,
+    usage : GPUBufferUsage,
+}
+
+impl GPUBuffer {
+
+    pub fn new<T>(cpuData : &[T], target : GPUBufferTarget, usage : GPUBufferUsage) -> GPUBuffer{
+        let vbo = gl::gen_buffers(1)[0];
+    
+        let glTarget = TargetToGL(& target);
+
+        gl::bind_buffer(glTarget, vbo);
+        gl::buffer_data(glTarget, cpuData, UsageToGL(& usage));
+
+        GPUBuffer {
+            handle : vbo,
+            target: target,
+            usage: usage,
+        }
+    }
+}
+
+
+fn TargetToGL(vit : & GPUBufferTarget) -> gl::GLenum {
+    match *vit {
+        GPUBufferTarget::Array => gl::GL_ARRAY_BUFFER,
+        GPUBufferTarget::ElementArray => gl::GL_ELEMENT_ARRAY_BUFFER,
+    }
+}
+
+fn UsageToGL(vit : & GPUBufferUsage) -> gl::GLenum {
+    match *vit {
+        GPUBufferUsage::Stream => gl::GL_STREAM_DRAW,
+        GPUBufferUsage::Static => gl::GL_STATIC_DRAW,
+        GPUBufferUsage::Dynamic => gl::GL_DYNAMIC_DRAW,
+    }
+}
+
+////////////////////////////////////
+// ShaderStage
 pub struct ShaderProgram(gl::GLuint);
 pub struct ShaderCode(gl::GLuint);
 
@@ -107,7 +166,7 @@ pub struct ShaderDataHndl(gl::GLuint);
 
 impl ShaderStage {
     
-    pub fn CreateBinding(&self, attributeName : & str, dataBuffer : u32, componentsPerVertex : u32) -> AttributeBinding {
+    pub fn CreateBinding(&self, attributeName : & str, buffer : & GPUBuffer, componentsPerVertex : u32) -> AttributeBinding {
         
         let attributeHndl = gl::get_attrib_location(self.program.0, attributeName) as gl::GLuint;
 
@@ -118,7 +177,7 @@ impl ShaderStage {
 
         AttributeBinding {
             attributeHndl: attributeHndl,
-            dataBufferHndl: dataBuffer,
+            dataBufferHndl: buffer.handle,
             numComponents: componentsPerVertex,
         }
     }

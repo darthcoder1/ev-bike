@@ -151,8 +151,6 @@ pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
     let screen_res = bcm_host::graphics_get_display_size(0).unwrap();
 
     gl::viewport(0, 0, screen_res.width as i32, screen_res.height as i32);
-
-    let (vertex_vbo, color_vbo, texcoord_vbo) = SetupGeometry();    
     
     let mut delta_time_ms = 0;
     
