@@ -2,7 +2,7 @@
 
 extern crate image;
 
-use std::path::Path;
+use std::time::Instant;
 
 use opengles::glesv2 as gl;
 
@@ -13,13 +13,16 @@ use self::image::GenericImage;
 
 pub struct Texture
 {
-    identifier : GLuint,
+    pub identifier : GLuint,
+    pub unit : i32,
     sampler : GLenum,
 }
 
 pub fn LoadTexture(path : &str, samplerIdx : i32) -> Texture {
 
-    let img = image::open(&Path::new("data/textures/logo.jpg")).expect("Failed to load texture");
+    let startTime = Instant::now();
+
+    let img = image::open(path).expect("Failed to load texture");
     let imgData = img.raw_pixels();
 
     let samplerEnum = match samplerIdx {
@@ -41,13 +44,19 @@ pub fn LoadTexture(path : &str, samplerIdx : i32) -> Texture {
     gl::active_texture(samplerEnum);
 
     gl::bind_texture(gl::GL_TEXTURE_2D, textures[0]);
+
+    gl::tex_parameteri(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MIN_FILTER, gl::GL_LINEAR as i32);
+    gl::tex_parameteri(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_MAG_FILTER, gl::GL_LINEAR as i32);
+    gl::tex_parameteri(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_WRAP_S, gl::GL_CLAMP_TO_EDGE as i32);
+    gl::tex_parameteri(gl::GL_TEXTURE_2D, gl::GL_TEXTURE_WRAP_T, gl::GL_CLAMP_TO_EDGE as i32);
+ 
     gl::tex_image_2d(gl::GL_TEXTURE_2D, 0, gl::GL_RGB as i32, img.width() as i32, img.height() as i32, 0, gl::GL_RGB, gl::GL_UNSIGNED_BYTE, &imgData[..]);
 
-    //gl::tex_image_2d(gl::GL_TEXTURE_2D, level: GLint, internal_format: GLint, width: GLsizei, height: GLsizei, border: GLint, format: GLenum, type_: GLenum, buffer: &[T])
-    println!("Loaded texture {}", path);
-
+    println!("LoadTexture({}) into Sampler: {} -- {}ms", path, samplerIdx, startTime.elapsed().as_millis());
+    
     Texture {
         identifier: textures[0],
+        unit: samplerIdx,
         sampler: samplerEnum,
     }
 }

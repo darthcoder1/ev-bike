@@ -169,36 +169,6 @@ pub fn RunMainLoop(renderCtx : renderer::RenderContext, glCtx : GLContext) {
         egl::swap_buffers(glCtx.display, glCtx.surface);
 
         delta_time_ms = time_now.elapsed().as_millis();
-        println!("DeltaTime: {}", delta_time_ms as u64);
+        //println!("DeltaTime: {}", delta_time_ms as u64);
     }
 }
-
-
-
-pub fn SetupGeometry() -> (gl::GLuint, gl::GLuint, gl::GLuint) {
-    let vbos = gl::gen_buffers(3);
-    
-    let vertices = [ -1.0, -1.0,                // bottom left
-                      1.0, -1.0,                // bottom right
-                      0.0,  1.0 ] as [f32;6];   // top
-
-    gl::bind_buffer(gl::GL_ARRAY_BUFFER, vbos[0]);
-    gl::buffer_data(gl::GL_ARRAY_BUFFER, &vertices, gl::GL_STATIC_DRAW);
-
-    let colors = [ 1.0, 0.0, 0.0, 
-                   0.0, 1.0, 0.0, 
-                   0.0, 0.0, 1.0 ] as [f32; 9];
-                   
-    gl::bind_buffer(gl::GL_ARRAY_BUFFER, vbos[1]);
-    gl::buffer_data(gl::GL_ARRAY_BUFFER, &colors, gl::GL_STATIC_DRAW);
-
-    let texCoords = [ -1.0, -1.0,                // bottom left
-                      1.0, -1.0,                // bottom right
-                      0.0,  0.0 ] as [f32;6];   // top
-
-    gl::bind_buffer(gl::GL_ARRAY_BUFFER, vbos[2]);
-    gl::buffer_data(gl::GL_ARRAY_BUFFER, &texCoords, gl::GL_STATIC_DRAW);
-
-    (vbos[0], vbos[1], vbos[2])
-}
-

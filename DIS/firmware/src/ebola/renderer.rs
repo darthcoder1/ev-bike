@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::fs;
+use std::time::Instant;
 
 use opengles::glesv2 as gl;
 
@@ -9,21 +10,6 @@ pub struct RenderContext {
     pub shaderStages: Vec<ShaderStage>,
     pub clearColor : [f32;4],
     pub renderCommands : Vec<Vec<RenderCommand>>,
-}
-
-
-#[derive(Clone)]
-pub struct AttributeBinding {
-
-    // Handle to the attribute to bind to
-    attributeHndl : gl::GLuint,
-    
-    // Handle to the data buffer (VBO)
-    dataBufferHndl : gl::GLuint,
-    
-    // Number of components
-    // This is the stride of the data. 
-    numComponents: u32,
 }
 
 pub enum PrimitivesType {
@@ -50,17 +36,45 @@ pub fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
 
 ////////////////////////////////////
 // Render Command
+
+#[derive(Clone)]
+pub struct AttributeBinding {
+
+    // Handle to the attribute to bind to
+    attributeHndl : gl::GLuint,
+    
+    // Handle to the data buffer (VBO)
+    dataBufferHndl : gl::GLuint,
+    
+    // Number of components
+    // This is the stride of the data. 
+    numComponents: u32,
+}
+
+enum UniformTypedData {
+    Integer(Vec<i32>),
+    Float(Vec<f32>),
+}
+
+pub struct UniformBinding {
+
+    handle : gl::GLint,
+    data : UniformTypedData,
+}
+
 pub struct RenderCommand {
     attributeBindings : Vec<AttributeBinding>,
+    uniformBindings : Vec<UniformBinding>,
     primitiveType : PrimitivesType,
     numVertices: u32,
 }
 
 impl RenderCommand {
     
-    pub fn new (attributeBindings : Vec<AttributeBinding>, primitiveType : PrimitivesType, numVertices : u32) -> RenderCommand {
+    pub fn new (attributeBindings : Vec<AttributeBinding>, uniformBindings : Vec<UniformBinding>, primitiveType : PrimitivesType, numVertices : u32) -> RenderCommand {
         RenderCommand {
             attributeBindings: attributeBindings,
+            uniformBindings : uniformBindings,
             primitiveType: primitiveType,
             numVertices: numVertices,
         }
@@ -70,7 +84,6 @@ impl RenderCommand {
         self.Bind();
         self.Draw();
         self.Unbind();
-        println!("RenderCommand executed.");
     }
 
     fn Bind(& self) {
@@ -79,6 +92,35 @@ impl RenderCommand {
             gl::enable_vertex_attrib_array(binding.attributeHndl);
             gl::bind_buffer(gl::GL_ARRAY_BUFFER, binding.dataBufferHndl);
             gl::vertex_attrib_pointer_offset(binding.attributeHndl, binding.numComponents as gl::GLint, gl::GL_FLOAT, false, 0, 0);
+        }
+
+        for binding in self.uniformBindings.iter() {
+            match binding.data {
+                UniformTypedData::Integer(ref intVec) => self.BindIntegers(binding.handle, & intVec),
+                UniformTypedData::Float(ref floatVec) => self.BindFloats(binding.handle, & floatVec),
+            }
+        }
+    }
+
+    fn BindIntegers(&self, uniformHndl : gl::GLint, data : & Vec<i32>) {
+        match data.len() {
+            0 => panic!("No elements. Cannot bind empty array "),
+            1 => gl::uniform1i(uniformHndl, data[0]),
+            2 => gl::uniform2i(uniformHndl, data[0], data[1]),
+            3 => gl::uniform3i(uniformHndl, data[0], data[1], data[2]),
+            4 => gl::uniform4i(uniformHndl, data[0], data[1], data[2], data[3]),
+            _ => panic!("Invalid data size for integer uniform"),
+        }
+    }
+
+    fn BindFloats(&self, uniformHndl : gl::GLint, data : & Vec<f32>) {
+        match data.len() {
+            0 => panic!("No elements. Cannot bind empty array "),
+            1 => gl::uniform1f(uniformHndl, data[0]),
+            2 => gl::uniform2f(uniformHndl, data[0], data[1]),
+            3 => gl::uniform3f(uniformHndl, data[0], data[1], data[2]),
+            4 => gl::uniform4f(uniformHndl, data[0], data[1], data[2], data[3]),
+            _ => panic!("Invalid data size for float uniform"),
         }
     }
 
@@ -167,19 +209,34 @@ pub struct ShaderDataHndl(gl::GLuint);
 
 impl ShaderStage {
     
-    pub fn CreateBinding(&self, attributeName : & str, buffer : & GPUBuffer, componentsPerVertex : u32) -> AttributeBinding {
+    pub fn BindAttribute(&self, attributeName : & str, buffer : & GPUBuffer, componentsPerVertex : u32) -> AttributeBinding {
         
         let attributeHndl = gl::get_attrib_location(self.program.0, attributeName) as gl::GLuint;
 
         if attributeHndl == gl::GL_INVALID_OPERATION
         {
-            panic!("Failed to create binding for '{}'", attributeName);
+            panic!("Failed to bind attribute '{}'", attributeName);
         }
 
         AttributeBinding {
             attributeHndl: attributeHndl,
             dataBufferHndl: buffer.handle,
             numComponents: componentsPerVertex,
+        }
+    }
+
+    pub fn BindUniform(&self, uniformName : & str, uniformData : Vec<i32>) -> UniformBinding {
+        
+        let hndl = gl::get_uniform_location(self.program.0, uniformName);
+        
+        if hndl < 0
+        {
+            panic!("Failed to bind uniform '{}'", uniformName);
+        }
+
+        UniformBinding {
+            handle: hndl,
+            data: UniformTypedData::Integer(uniformData.clone()),
         }
     }
 }
@@ -211,6 +268,8 @@ impl Default for ShaderStage
 // The path must omit the file extension. Then the system will look
 // for '<path>.vert' and '<path>.frag' and load them accordingly.
 pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
+
+    let startTime = Instant::now();
 
     let mut vertPath = path.to_owned();
     vertPath.push_str(".vert");
@@ -244,6 +303,7 @@ pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
 
     gl::use_program(program);
 
+    println!("LoadShaderStage({}) -- {}ms", path, startTime.elapsed().as_millis());
     Ok(ShaderStage{
         program: ShaderProgram(program),
         fragShader: ShaderCode(fragShader),

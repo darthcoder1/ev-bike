@@ -1,8 +1,10 @@
 
 attribute vec4  a_color;
 attribute vec4  a_vertex;
+attribute vec2  a_texCoord;
 
 varying vec4    v_color;
+varying vec2    v_texCoords;
 
 void main() 
 {
@@ -14,7 +16,7 @@ void main()
     // offset the pos to match opengl coordinates ( with (0,0) at the center)
     transformedPos += vec4(-1.0, 1.0, 0.0, 0.0);
         
-    
     gl_Position = transformedPos;
     v_color = a_color;
+    v_texCoords = a_texCoord;
 }
