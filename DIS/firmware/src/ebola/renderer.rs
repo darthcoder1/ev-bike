@@ -53,23 +53,24 @@ pub fn ToGL(vit : & PrimitivesType) -> gl::GLenum {
 pub struct RenderCommand {
     attributeBindings : Vec<AttributeBinding>,
     primitiveType : PrimitivesType,
-    numPrimitives: u32,
+    numVertices: u32,
 }
 
 impl RenderCommand {
     
-    pub fn new (attributeBindings : Vec<AttributeBinding>, primitiveType : PrimitivesType, numPrimitives : u32) -> RenderCommand {
+    pub fn new (attributeBindings : Vec<AttributeBinding>, primitiveType : PrimitivesType, numVertices : u32) -> RenderCommand {
         RenderCommand {
             attributeBindings: attributeBindings,
             primitiveType: primitiveType,
-            numPrimitives: numPrimitives,
+            numVertices: numVertices,
         }
     }
 
     pub fn Execute(& self) {
         self.Bind();
-        self.Draw(& self.primitiveType, self.numPrimitives);
+        self.Draw();
         self.Unbind();
+        println!("RenderCommand executed.");
     }
 
     fn Bind(& self) {
@@ -81,8 +82,8 @@ impl RenderCommand {
         }
     }
 
-    fn Draw(& self, primitvesType : & PrimitivesType, numPrimitives : u32) {
-        gl::draw_arrays(ToGL(& primitvesType), 0, numPrimitives as gl::GLint);
+    fn Draw(& self) {
+        gl::draw_arrays(ToGL(& self.primitiveType), 0, self.numVertices as gl::GLint);
     }
 
     fn Unbind(& self) {
@@ -233,6 +234,14 @@ pub fn LoadShaderStage(path : & str) -> Result<ShaderStage, ()> {
     gl::attach_shader(program, vertShader);
 
     gl::link_program(program);
+
+    if gl::get_programiv(program, gl::GL_LINK_STATUS) == gl::GL_FALSE as i32 {
+        match gl::get_program_info_log(program, 1024) {
+            Some(log) => println!("Failed to link shaders: {}\n{}",path, log),
+            None => ()
+        }
+    }
+
     gl::use_program(program);
 
     Ok(ShaderStage{
@@ -252,9 +261,17 @@ fn LoadShaderInternal(path : & str, shaderType : gl::GLenum) -> Result<gl::GLuin
     };
     
     let shader = gl::create_shader(shaderType);
+    println!("LoadShader({}) -> {}", path, shader);
 
     gl::shader_source(shader, shaderCode.as_bytes());
     gl::compile_shader(shader);
+
+    if gl::get_shaderiv(shader, gl::GL_COMPILE_STATUS) == gl::GL_FALSE as i32 {
+        match gl::get_shader_info_log(shader, 1024) {
+            Some(log) => println!("Compilation Errors:\n{}",log),
+            None => ()
+        }
+    }
 
     Ok(shader)
 }

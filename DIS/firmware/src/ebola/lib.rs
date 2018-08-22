@@ -137,6 +137,9 @@ pub fn InitEGL(window : & mut Window) -> GLContext {
         panic!("Failed to activate EGL context");
     }
 
+    let supportsShaderCompiler = gl::get_booleanv(gl::GL_SHADER_COMPILER);
+    println!("Supports shader compiler: {}", supportsShaderCompiler);
+
     GLContext {
         config: egl_config,
         context: egl_context,
