@@ -3,6 +3,9 @@
 
 extern crate videocore;
 extern crate ebola;
+extern crate cgmath;
+
+pub mod vehicle;
 
 use videocore::bcm_host;
 
@@ -13,22 +16,13 @@ use ebola::renderer::{
         PrimitivesType,
         GPUBuffer,
         GPUBufferTarget,
-        GPUBufferUsage
+        GPUBufferUsage 
     };
 
+type Vector2 = cgmath::Vector2<f32>;
+type Vector3 = cgmath::Vector3<f32>;
 
 const DATA_PATH : & str = "/opt/firmware/data" ;
-
-struct Vector2 {
-    x: f32, 
-    y: f32,
-}
-
-struct Vector3 {
-    x:f32, 
-    y:f32,
-    z:f32,
-}
 
 struct Geometry {
     vertices : GPUBuffer,
@@ -36,7 +30,11 @@ struct Geometry {
     texcoords : GPUBuffer,
 }
 
-fn CreateRenderQuad(pos : & Vector2, size : & Vector2, color : Vector3) -> Geometry {
+fn GetFullDataPath(relPath : & str) -> String {
+    format!("{}/{}", DATA_PATH, relPath)
+}
+
+fn CreateUIQuad(pos : Vector2, size : Vector2, color : Vector3) -> Geometry {
 
     let vertices = [ pos.x, pos.y,                          // top left
                      pos.x, pos.y + size.y,                 // bottom left
@@ -64,15 +62,15 @@ fn CreateRenderQuad(pos : & Vector2, size : & Vector2, color : Vector3) -> Geome
     }
 }
 
-fn PrepareStages() -> (renderer::ShaderStage, Vec<RenderCommand>) {
+fn PrepareUIStage() -> (renderer::ShaderStage, Vec<RenderCommand>) {
     
-    let shaderPath = format!("{}/{}", DATA_PATH, "default");
+    let shaderPath = GetFullDataPath("default");
     let uiOverlayStage = renderer::LoadShaderStage(& shaderPath).unwrap();
 
-    let texturePath = format!("{}{}", DATA_PATH, "/test.png");
+    let texturePath = GetFullDataPath("test.png");
     let tex = ebola::texture::LoadTexture(& texturePath, 0);
     
-    let greenQuad = CreateRenderQuad(& Vector2{ x: 0.0, y: 50.0 }, & Vector2 { x:100.0, y:100.0 }, Vector3 { x:0.0, y:1.0, z: 0.0 });
+    let greenQuad = CreateUIQuad(Vector2{ x: 0.0, y: 50.0 }, Vector2 { x:100.0, y:100.0 }, Vector3 { x:0.0, y:1.0, z: 0.0 });
     let greenQuadAttribs = vec![
         uiOverlayStage.BindAttribute("a_vertex", & greenQuad.vertices, 2),
         uiOverlayStage.BindAttribute("a_color", & greenQuad.colors, 3),
@@ -82,7 +80,7 @@ fn PrepareStages() -> (renderer::ShaderStage, Vec<RenderCommand>) {
         uiOverlayStage.BindUniform("u_tex0", vec![tex.unit]),
     ];
 
-    let blueQuad = CreateRenderQuad(& Vector2{ x: 10.0, y: 550.0 }, & Vector2 { x:1004.0, y:500.0 }, Vector3 { x:0.0, y:0.0, z: 1.0 });
+    let blueQuad = CreateUIQuad(Vector2{ x: 10.0, y: 550.0 }, Vector2 { x:1004.0, y:500.0 }, Vector3 { x:0.0, y:0.0, z: 1.0 });
     let blueQuadAttribs = vec![
         uiOverlayStage.BindAttribute("a_vertex", & blueQuad.vertices, 2),
         uiOverlayStage.BindAttribute("a_color", & blueQuad.colors, 3),
@@ -100,19 +98,47 @@ fn PrepareStages() -> (renderer::ShaderStage, Vec<RenderCommand>) {
     (uiOverlayStage, renderCommands)
 }
 
-fn main() {
-    bcm_host::init();
+fn PrepareWorldStage() -> (renderer::ShaderStage, Vec<RenderCommand>) {
+    let shaderPath = GetFullDataPath("default");
+    let geometryStage = renderer::LoadShaderStage(& shaderPath).unwrap();
 
+    (geometryStage, vec![])
+}
+
+fn main() {
+    
+    let config = vehicle::LoadVehicleConfiguration(& GetFullDataPath("test_vehicle.cfg"));
+    println!("GearRatio: {}", config.gearRatio);
+    println!("DriveWheelDiameter: {}", config.driveWheelDiameter);
+
+    let mut vehicleData = vehicle::VehicleData {
+        engineRPM: 6000,
+        batteryCharge: 100,
+    };
+
+    let rpms = [2000, 3000, 4000, 5000, 6000];
+
+    for rpm in rpms.iter() {
+        vehicleData.engineRPM = *rpm;
+        let speed = vehicle::CalculateDrivingSpeed(& config, & vehicleData);
+
+        println!("Speed at {} rpm: {} km/h", rpm, speed);
+    }
+
+    panic!("DONE!");
+
+    bcm_host::init();
+       
     let mut window = ebola::CreateRenderWindow();
 
     let glContext = ebola::InitEGL(&mut window);
 
-    let (shaderStage, renderCommands) = PrepareStages();
+    let (uiStage, uiRenderCommands) = PrepareUIStage();
 
     ebola::RunMainLoop(RenderContext  {
-                                    shaderStages: vec![shaderStage],
+                                    shaderStages: vec![uiStage],
                                     clearColor: [1.0, 0.0, 0.0, 1.0],
-                                    renderCommands: vec![renderCommands],
+                                    renderCommands: vec![uiRenderCommands],
                                 },
                        glContext);
 }
