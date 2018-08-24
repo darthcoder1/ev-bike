@@ -44,33 +44,34 @@ fn main() -> ! {
 	// This is the mapping between the actual pins and the power channels they switch
 	
 	// acquire all the pins 
-	let mut channel0 = gpiob.pb4.into_push_pull_output(& mut gpiob.crl);	channel0.set_low();
-	let mut channel1 = gpiob.pb5.into_push_pull_output(& mut gpiob.crl);	channel1.set_low();
-	let mut channel2 = gpiob.pb6.into_push_pull_output(& mut gpiob.crl);	channel2.set_low();
-	let mut channel3 = gpiob.pb7.into_push_pull_output(& mut gpiob.crl);	channel3.set_low();
-	let mut channel4 = gpiob.pb8.into_push_pull_output(& mut gpiob.crh);	channel4.set_low();
-	let mut channel5 = gpiob.pb9.into_push_pull_output(& mut gpiob.crh);	channel5.set_low();
-	let mut channel6 = gpiob.pb10.into_push_pull_output(& mut gpiob.crh);	channel6.set_low();
-	let mut channel7 = gpiob.pb11.into_push_pull_output(& mut gpiob.crh);	channel7.set_low();
-	let mut channel8 = gpiob.pb12.into_push_pull_output(& mut gpiob.crh);	channel8.set_low();
-	let mut channel9 = gpiob.pb13.into_push_pull_output(& mut gpiob.crh);	channel9.set_low();
-	let mut channel10 = gpiob.pb14.into_push_pull_output(& mut gpiob.crh); 	channel10.set_low();
-	let mut channel11 = gpiob.pb15.into_push_pull_output(& mut gpiob.crh);  channel11.set_low();	
+	let mut channel01 = gpioa.pa6.into_push_pull_output(& mut gpioa.crl);	channel01.set_low();
+	let mut channel02 = gpioa.pa7.into_push_pull_output(& mut gpioa.crl);	channel02.set_low();
+	let mut channel03 = gpiob.pb0.into_push_pull_output(& mut gpiob.crl);	channel03.set_low();
+	let mut channel04 = gpiob.pb1.into_push_pull_output(& mut gpiob.crl);	channel04.set_low();
+	let mut channel05 = gpiob.pb10.into_push_pull_output(& mut gpiob.crh);	channel05.set_low();
+	let mut channel06 = gpiob.pb11.into_push_pull_output(& mut gpiob.crh);	channel06.set_low();
+
+	let mut channel07 = gpioa.pa5.into_push_pull_output(& mut gpioa.crl);	channel07.set_low();
+	let mut channel08 = gpioa.pa4.into_push_pull_output(& mut gpioa.crl);	channel08.set_low();
+	let mut channel09 = gpioa.pa3.into_push_pull_output(& mut gpioa.crl);	channel09.set_low();
+	let mut channel10 = gpioa.pa2.into_push_pull_output(& mut gpioa.crl);	channel10.set_low();
+	let mut channel11 = gpioa.pa1.into_push_pull_output(& mut gpioa.crl); 	channel11.set_low();
+	let mut channel12 = gpioa.pa0.into_push_pull_output(& mut gpioa.crl);  	channel11.set_low();	
 	
 	// create the mapping
 	let mut power_channels = [ 
-		PowerChannel::TurnLeftFront		(& mut channel0),
-		PowerChannel::TurnLeftRear		(& mut channel1),
-		PowerChannel::TurnRightFront	(& mut channel2),
-		PowerChannel::TurnRightRear		(& mut channel3),
-		PowerChannel::HeadLightParking	(& mut channel4),
-		PowerChannel::HeadLightLowerBeam(& mut channel5),
-		PowerChannel::HeadLightFullBeam	(& mut channel6),
-		PowerChannel::RearLight			(& mut channel7),
-		PowerChannel::BrakeLight		(& mut channel8),
-		PowerChannel::Horn				(& mut channel9),
-		PowerChannel::Unused0			(& mut channel10),
-		PowerChannel::Unused1			(& mut channel11),
+		PowerChannel::TurnLeftFront		(& mut channel01),
+		PowerChannel::TurnLeftRear		(& mut channel02),
+		PowerChannel::TurnRightFront	(& mut channel03),
+		PowerChannel::TurnRightRear		(& mut channel04),
+		PowerChannel::HeadLightParking	(& mut channel05),
+		PowerChannel::HeadLightLowerBeam(& mut channel06),
+		PowerChannel::HeadLightFullBeam	(& mut channel07),
+		PowerChannel::RearLight			(& mut channel08),
+		PowerChannel::BrakeLight		(& mut channel09),
+		PowerChannel::Horn				(& mut channel10),
+		PowerChannel::Unused0			(& mut channel11),
+		PowerChannel::Unused1			(& mut channel12),
 	];
 
 
