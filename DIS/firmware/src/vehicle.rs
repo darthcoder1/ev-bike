@@ -54,12 +54,39 @@ pub fn LoadVehicleConfiguration(filePath : & str) -> VehicleConfiguration {
     config
 }
 
+pub enum TurnSignalStatus
+{
+    Off,
+    Left,
+    Right,
+    Hazard,
+}
 
 pub struct VehicleData {
+    // indicates whether the throttle is active
+    // As the motor is always on in an ev, this is indicating whether the engine
+    // is in a state that throttle input will be passed on to the motorcontroller
+    pub throttleActive : bool,
     // current RPM of the motor
     pub engineRPM : i32,
     // current charge of the battery in percent
     pub batteryCharge : i32,
+    // status of the turns signal
+    pub turnSignal : TurnSignalStatus,
+    // indicates whether full beam is activated or not
+    pub fullBeamActive : bool,
+}
+
+impl VehicleData {
+
+    pub fn new() -> VehicleData {
+        throttleActive: true,
+        engineRPM: 2000,
+        batteryCharge: 100,
+        turnSignal: TurnSignalStatus::Off,
+        fullBeamActive: false,
+    }
+
 }
 
 

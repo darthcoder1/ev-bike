@@ -111,13 +111,10 @@ fn main() {
     println!("GearRatio: {}", config.gearRatio);
     println!("DriveWheelDiameter: {}", config.driveWheelDiameter);
 
-    let mut vehicleData = vehicle::VehicleData {
-        engineRPM: 6000,
-        batteryCharge: 100,
-    };
+    let mut vehicleData = vehicle::VehicleData::new();
+
 
     let rpms = [2000, 3000, 4000, 5000, 6000];
-
     for rpm in rpms.iter() {
         vehicleData.engineRPM = *rpm;
         let speed = vehicle::CalculateDrivingSpeed(& config, & vehicleData);
