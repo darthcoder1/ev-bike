@@ -80,11 +80,13 @@ pub struct VehicleData {
 impl VehicleData {
 
     pub fn new() -> VehicleData {
-        throttleActive: true,
-        engineRPM: 2000,
-        batteryCharge: 100,
-        turnSignal: TurnSignalStatus::Off,
-        fullBeamActive: false,
+        VehicleData {
+            throttleActive: true,
+            engineRPM: 2000,
+            batteryCharge: 100,
+            turnSignal: TurnSignalStatus::Off,
+            fullBeamActive: false,
+        }
     }
 
 }
