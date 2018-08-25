@@ -56,7 +56,7 @@ fn main() -> ! {
 	let mut channel09 = gpioa.pa3.into_push_pull_output(& mut gpioa.crl);	channel09.set_low();
 	let mut channel10 = gpioa.pa2.into_push_pull_output(& mut gpioa.crl);	channel10.set_low();
 	let mut channel11 = gpioa.pa1.into_push_pull_output(& mut gpioa.crl); 	channel11.set_low();
-	let mut channel12 = gpioa.pa0.into_push_pull_output(& mut gpioa.crl);  	channel11.set_low();	
+	let mut channel12 = gpioa.pa0.into_push_pull_output(& mut gpioa.crl);  	channel11.set_low();
 	
 	// create the mapping
 	let mut power_channels = [ 
