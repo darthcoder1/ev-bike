@@ -1,5 +1,7 @@
 # Auxilaries Power Controller (APU)
 
+## Overview
+
 This is an ARM Cortex M3 controlling the power output to the auxilaries of a motorcycle. The
 MCU reads input from the driver controls, processes these and switches the according auxilaries
 on or off (Headlight, Brakelight, Turn signals, etc). The output is controlled via BTS432E2 
@@ -13,6 +15,16 @@ The logic is implemented in rust
 * Read diagnosis from all output channels
 * handle possible errors
 * (send telemtric information to ???)
+
+## Setup Requirements
+
+* Install Rust
+* Install nightly toolchain ("rustup toolchain install nightly")
+* Set nightly toolchain as default ("rustup default nightly")
+* Install arm target 'thumbv7em-none-eabihf' ("rustup add target thumbv7em-none-eabihf")
+* Install arm compiler toolchain ("apt-get install gcc-arm-none-eabi")
+
+Rust must be installed as well as the rust target .
 
 ## Inputs
 
