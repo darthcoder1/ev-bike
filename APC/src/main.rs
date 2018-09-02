@@ -1,6 +1,7 @@
 #![deny(unsafe_code)]
 #![no_main]
 #![no_std]
+#![allow(non_snake_case)]
 
 extern crate cortex_m;
 #[macro_use]
@@ -17,7 +18,10 @@ use rt::ExceptionFrame;
 
 use hal::prelude::*;
 use hal::stm32f103xx;
-use logic::PowerChannel;
+use logic::{ 
+	PowerChannel,
+	DriverControlInput
+};
 
 entry!(main);
 
@@ -40,7 +44,38 @@ fn main() -> ! {
 
 	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh); led.set_low();
 	
+	// input logic mapping
+	let controlInput0_Data = gpiob.pb4.into_floating_input(& mut gpiob.crl);
+	let controlInput0_Sel0 = gpioa.pa11.into_push_pull_output(& mut gpioa.crh);
+	let controlInput0_Sel1 = gpioa.pa12.into_push_pull_output(& mut gpioa.crh);
+	let controlInput0_Sel2 = gpioa.pa13.into_push_pull_output(& mut gpioa.crh);
 	
+	let controlInput1_Data = gpiob.pb3.into_floating_input(& mut gpiob.crl);
+	let controlInput1_Sel0 = gpioa.pa10.into_push_pull_output(& mut gpioa.crh);
+	let controlInput1_Sel1 = gpioa.pa9.into_push_pull_output(& mut gpioa.crh);
+	let controlInput1_Sel2 = gpioa.pa8.into_push_pull_output(& mut gpioa.crh);
+
+	// Hardware control mapping
+	// These are the 2 mulitplexor chips, the first one is responsible
+	// for reading the first 8 channels, the 2nd for the other 8 Channels.
+	// To read thenm select the line 
+	let controlInput = [
+		// driver controls input channels 0 - 7
+		DriverControlInput::new(
+			& controlInput0_Data,
+			[ & controlInput0_Sel0,
+			  & controlInput0_Sel1,
+			  & controlInput0_Sel2 ]
+		),
+		// driver controls input channels 8 - 15
+		DriverControlInput::new(
+			& controlInput1_Data,
+			[ & controlInput1_Sel0,
+			  & controlInput1_Sel1,
+			  & controlInput1_Sel2 ]
+		)
+	];
+
 	// This is the mapping between the actual pins and the power channels they switch
 	
 	// acquire all the pins 
@@ -96,14 +131,12 @@ fn main() -> ! {
 
  // define the hard fault handler
  exception!(HardFault, hard_fault);
-
  fn hard_fault(ef: &ExceptionFrame) -> ! {
      panic!("HardFault at {:#?}", ef);
  }
 
  // define the default exception handler
  exception!(*, default_handler);
-
  fn default_handler(irqn: i16) {
      panic!("Unhandled exception (IRQn = {})", irqn);
  }

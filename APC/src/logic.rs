@@ -1,7 +1,10 @@
+#![allow(non_snake_case)]
+
 pub use time::TimeStamp;
 
 use time;
 use embedded_hal::digital::OutputPin;
+use embedded_hal::digital::InputPin;
 
 // This indicates s state and if active, since which tick
 pub enum State
@@ -46,6 +49,23 @@ pub struct Input
 	side_stand : bool,
 }
 
+
+pub struct DriverControlInput<'a>
+{
+	dataPin 		: &'a InputPin,
+	selectPins 		: [&'a OutputPin;3],
+}
+
+impl<'a> DriverControlInput<'a>
+{
+	pub fn new<'b>(dataPin : &'a InputPin, selectPins : [&'a OutputPin;3]) -> DriverControlInput<'a> {
+		DriverControlInput {
+			dataPin: dataPin,
+			selectPins : selectPins,
+		}
+	}
+}
+
 //fn initialize_power_channel(_channel : PowerChannel, )
 
 // This describes how the power ouptput needs to be swithed, which
@@ -66,7 +86,6 @@ pub struct PowerOutput
     unused1 : bool,
 }
 
-
 pub enum PowerChannel<'a>
 {
     TurnLeftFront(&'a mut OutputPin),
@@ -82,7 +101,6 @@ pub enum PowerChannel<'a>
     Unused0(&'a mut OutputPin),
     Unused1(&'a mut OutputPin),
 }
-
 
 // TODO. This will read the input data pins from the driver controlls
 // and fill in the Input structure
