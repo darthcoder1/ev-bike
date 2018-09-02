@@ -20,8 +20,11 @@ use hal::prelude::*;
 use hal::stm32f103xx;
 use logic::{ 
 	PowerChannel,
-	DriverControlInput
+	DriverControlConfig
 };
+
+use embedded_hal::digital::OutputPin;
+use embedded_hal::digital::InputPin;
 
 entry!(main);
 
@@ -46,35 +49,34 @@ fn main() -> ! {
 	
 	// input logic mapping
 	let controlInput0_Data = gpiob.pb4.into_floating_input(& mut gpiob.crl);
-	let controlInput0_Sel0 = gpioa.pa11.into_push_pull_output(& mut gpioa.crh);
-	let controlInput0_Sel1 = gpioa.pa12.into_push_pull_output(& mut gpioa.crh);
-	let controlInput0_Sel2 = gpioa.pa13.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput0_Sel0 = gpioa.pa11.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput0_Sel1 = gpioa.pa12.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput0_Sel2 = gpioa.pa13.into_push_pull_output(& mut gpioa.crh);
 	
 	let controlInput1_Data = gpiob.pb3.into_floating_input(& mut gpiob.crl);
-	let controlInput1_Sel0 = gpioa.pa10.into_push_pull_output(& mut gpioa.crh);
-	let controlInput1_Sel1 = gpioa.pa9.into_push_pull_output(& mut gpioa.crh);
-	let controlInput1_Sel2 = gpioa.pa8.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput1_Sel0 = gpioa.pa10.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput1_Sel1 = gpioa.pa9.into_push_pull_output(& mut gpioa.crh);
+	let mut controlInput1_Sel2 = gpioa.pa8.into_push_pull_output(& mut gpioa.crh);
 
 	// Hardware control mapping
 	// These are the 2 mulitplexor chips, the first one is responsible
 	// for reading the first 8 channels, the 2nd for the other 8 Channels.
 	// To read thenm select the line 
-	let controlInput = [
-		// driver controls input channels 0 - 7
-		DriverControlInput::new(
+
+	// input channels 0 - 7
+	let mut controlInput0 =	DriverControlConfig::new(
 			& controlInput0_Data,
-			[ & controlInput0_Sel0,
-			  & controlInput0_Sel1,
-			  & controlInput0_Sel2 ]
-		),
-		// driver controls input channels 8 - 15
-		DriverControlInput::new(
+			[ & mut controlInput0_Sel0 as & mut OutputPin,
+			  & mut controlInput0_Sel1 as & mut OutputPin,
+			  & mut controlInput0_Sel2 as & mut OutputPin ]
+		);
+	// driver controls input channels 8 - 15
+	let mut controlInput1 = DriverControlConfig::new(
 			& controlInput1_Data,
-			[ & controlInput1_Sel0,
-			  & controlInput1_Sel1,
-			  & controlInput1_Sel2 ]
-		)
-	];
+			[ & mut controlInput1_Sel0 as & mut OutputPin,
+			  & mut controlInput1_Sel1 as & mut OutputPin,
+			  & mut controlInput1_Sel2 as & mut OutputPin ]
+		);
 
 	// This is the mapping between the actual pins and the power channels they switch
 	
@@ -119,7 +121,11 @@ fn main() -> ! {
 
     loop {
     	
-		_system_state = logic::tick( _system_state, & mut power_channels, _clocks);
+		let input = logic::read_input( [
+			& mut controlInput0,
+			& mut controlInput1,
+		]);
+		_system_state = logic::tick(& input, _system_state, & mut power_channels, _clocks);
 
 		// read diagnosis from PFETs
 

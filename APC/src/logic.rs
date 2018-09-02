@@ -50,18 +50,62 @@ pub struct Input
 }
 
 
-pub struct DriverControlInput<'a>
+// This is used to configure the Input Hardware
+// 2 multiplexers are controlling 8 input channels each.
+// This data structure is used to configure one multiplexer.
+// It specifies the data and the selector pins and also defines
+// the selector pin states to read from a specific channel
+//
+// Ex. selectors[0]: [0,1,0] 
+// The above code means, to read from channel 0, set the selectors
+// to low, high, low.
+pub struct DriverControlConfig<'a>
 {
 	dataPin 		: &'a InputPin,
-	selectPins 		: [&'a OutputPin;3],
+	selectPins 		: [&'a mut OutputPin;3],
+	selectors 		: [[i32;3];8]
 }
 
-impl<'a> DriverControlInput<'a>
+impl<'a> DriverControlConfig<'a>
 {
-	pub fn new<'b>(dataPin : &'a InputPin, selectPins : [&'a OutputPin;3]) -> DriverControlInput<'a> {
-		DriverControlInput {
+	pub fn new<'b>(dataPin : &'a InputPin, selectPins : [&'a mut OutputPin;3]) -> DriverControlConfig<'a> {
+		DriverControlConfig {
 			dataPin: dataPin,
 			selectPins : selectPins,
+			selectors: [
+				[1,1,0], 		// Y3
+				[0,0,0], 		// Y0
+				[1,0,0], 		// Y1
+				[0,1,0], 		// Y2
+				[1,0,1], 		// Y5
+				[1,1,1], 		// Y7
+				[0,1,1], 		// Y6
+				[0,0,1], 		// Y4
+			]
+		}
+	}
+
+
+	fn SetOutputPin(pin : & mut OutputPin, high : bool) {
+		if high {
+			pin.set_high();
+		} else {
+			pin.set_low();
+		}
+	}
+
+	pub fn ReadChannel(& mut self, channelIdx : usize) -> Option<bool> {
+		if channelIdx < 8 {
+			None
+		} else {
+		
+			let channelSelectors = self.selectors[channelIdx];
+		
+			for i in 0..3 {
+				DriverControlConfig::SetOutputPin(self.selectPins[i], channelSelectors[i]==1);
+			}
+			
+			Some(self.dataPin.is_high())
 		}
 	}
 }
@@ -102,13 +146,13 @@ pub enum PowerChannel<'a>
     Unused1(&'a mut OutputPin),
 }
 
-// TODO. This will read the input data pins from the driver controlls
-// and fill in the Input structure
-fn read_input() -> Input {
-	
-	// TOOD: read input from pins
+// Reads the input from the control input pins
+// it expectes an array of DriverControlConfigs, where
+// each element describes the access to one multiplexer, 
+// which allows to read input from 8 channels.
+pub fn read_input( controlConfigs : [& mut DriverControlConfig;2] ) -> Input {
 
-	let input = Input {
+	Input {
 		ignition : true,
 		brake_front : false,
 		brake_rear : false,
@@ -118,11 +162,9 @@ fn read_input() -> Input {
 		light_on : false,
 		full_beam : false,
 		horn : false, 
-		kill_switch : false,
+		kill_switch :  DriverControlConfig::ReadChannel(controlConfigs[0], 0).unwrap(),
 		side_stand : false,
-	};
-
-	input
+	}
 }
 
 
@@ -319,12 +361,10 @@ fn apply_power_output(_power_out : PowerOutput, _power_channels : & mut [PowerCh
     }
 }
 
-pub fn tick(_system_state : SystemState, _power_channels : & mut [PowerChannel], _clocks : time::Clocks) -> SystemState
+pub fn tick(input : & Input, _system_state : SystemState, _power_channels : & mut [PowerChannel], _clocks : time::Clocks) -> SystemState
 {
-    let _input = read_input();
-
-    let _new_system_state = update_system_state(_system_state, &_input);
-    let _power_out = switch_power_output(&_new_system_state, &_input, &_clocks);
+    let _new_system_state = update_system_state(_system_state, input);
+    let _power_out = switch_power_output(&_new_system_state, input, &_clocks);
     
     apply_power_output(_power_out, _power_channels);
     _new_system_state
