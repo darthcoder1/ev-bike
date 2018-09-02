@@ -51,15 +51,15 @@ the state of the inputs to the ARM Cortex M3 via SPI.
 The ouput has 12 channel. The software takes care of the channel usage, so they are fully programmable. 
 The outputs are switched by a BTS432E2 powerFET per channel.
 
-* Turn signal left front
-* Turn signal right front
-* Turn signal left rear
-* Turn signal right rear
-* Headlight parking
-* Headlight lower beam
-* Headlight full beam
-* Rearlight
-* Braking light
-* Horn
-* Unused
-* Unused
+* Headlight lower beam      [Ch 00]
+* Headlight full beam       [Ch 01]
+* Headlight parking         [Ch 02]
+* Turn signal left front    [Ch 03]
+* Turn signal left rear     [Ch 04]
+* Turn signal right front   [Ch 05]
+* Turn signal right rear    [Ch 06]
+* Rearlight                 [Ch 07]
+* Braking light             [Ch 08]
+* Horn                      [Ch 09]
+* Unused                    [Ch 10]
+* Unused                    [Ch 11]

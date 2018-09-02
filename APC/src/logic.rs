@@ -85,15 +85,6 @@ impl<'a> DriverControlConfig<'a>
 		}
 	}
 
-
-	fn SetOutputPin(pin : & mut OutputPin, high : bool) {
-		if high {
-			pin.set_high();
-		} else {
-			pin.set_low();
-		}
-	}
-
 	pub fn ReadChannel(& mut self, channelIdx : usize) -> Option<bool> {
 		if channelIdx < 8 {
 			None
@@ -102,11 +93,32 @@ impl<'a> DriverControlConfig<'a>
 			let channelSelectors = self.selectors[channelIdx];
 		
 			for i in 0..3 {
-				DriverControlConfig::SetOutputPin(self.selectPins[i], channelSelectors[i]==1);
+				SetOutputPin(self.selectPins[i], channelSelectors[i]==1);
 			}
 			
 			Some(self.dataPin.is_high())
 		}
+	}
+}
+
+pub struct PowerOutputConfig<'a>
+{
+	pub channels : [&'a mut OutputPin;12],
+}
+
+impl<'a> PowerOutputConfig<'a> 
+{
+	pub fn SwitchChannel(& mut self, channelIdx : usize, isHigh : bool) {
+		SetOutputPin(self.channels[channelIdx], isHigh);
+	}
+}
+
+
+fn SetOutputPin(pin : & mut OutputPin, high : bool) {
+	if high {
+		pin.set_high();
+	} else {
+		pin.set_low();
 	}
 }
 
@@ -130,21 +142,6 @@ pub struct PowerOutput
     unused1 : bool,
 }
 
-pub enum PowerChannel<'a>
-{
-    TurnLeftFront(&'a mut OutputPin),
-	TurnLeftRear(&'a mut OutputPin),
-	TurnRightFront(&'a mut OutputPin),
-	TurnRightRear(&'a mut OutputPin),
-	HeadLightParking(&'a mut OutputPin),
-	HeadLightLowerBeam(&'a mut OutputPin),
-	HeadLightFullBeam(&'a mut OutputPin),
-	RearLight(&'a mut OutputPin),
-	BrakeLight(&'a mut OutputPin),
-	Horn(&'a mut OutputPin),
-    Unused0(&'a mut OutputPin),
-    Unused1(&'a mut OutputPin),
-}
 
 // Reads the input from the control input pins
 // it expectes an array of DriverControlConfigs, where
@@ -334,38 +331,29 @@ fn switch_power_output(_system : &SystemState, _input : &Input, _clock : &time::
 	power_output
 }
 
-fn enable_pin(_pin : & mut OutputPin, _enable : bool) {
-	if _enable { 
-		_pin.set_high();
-	} else {
-		_pin.set_low();
-	}
+fn apply_power_output(powerOut : PowerOutput, powerChannels : & mut PowerOutputConfig) {
+	
+	powerChannels.SwitchChannel(0,  powerOut.head_light_lowbeam);
+	powerChannels.SwitchChannel(1,  powerOut.head_light_fullbeam);
+	powerChannels.SwitchChannel(2,  powerOut.head_light_parking);
+	powerChannels.SwitchChannel(3,  powerOut.turn_left_front);
+	powerChannels.SwitchChannel(4,  powerOut.turn_left_rear);
+	powerChannels.SwitchChannel(5,  powerOut.turn_right_front);
+	powerChannels.SwitchChannel(6,  powerOut.turn_right_rear);
+	powerChannels.SwitchChannel(7,  powerOut.rear_light);
+	powerChannels.SwitchChannel(8,  powerOut.brake_light);
+	powerChannels.SwitchChannel(9,  powerOut.horn);
+
+	powerChannels.SwitchChannel(10, false);
+	powerChannels.SwitchChannel(11, false);
+	powerChannels.SwitchChannel(12, false);
 }
 
-fn apply_power_output(_power_out : PowerOutput, _power_channels : & mut [PowerChannel]) {
-	for channel in _power_channels {
-        match channel {
-            PowerChannel::TurnLeftFront(_pin) => enable_pin(*_pin, _power_out.turn_left_front),
-            PowerChannel::TurnRightFront(_pin) => enable_pin(*_pin, _power_out.turn_right_front),
-            PowerChannel::TurnLeftRear(_pin) => enable_pin(*_pin, _power_out.turn_left_rear),
-            PowerChannel::TurnRightRear(_pin) => enable_pin(*_pin, _power_out.turn_right_rear),
-            PowerChannel::HeadLightParking(_pin) => enable_pin(*_pin, _power_out.head_light_parking),
-            PowerChannel::HeadLightLowerBeam(_pin) => enable_pin(*_pin, _power_out.head_light_lowbeam),
-            PowerChannel::HeadLightFullBeam(_pin) => enable_pin(*_pin, _power_out.head_light_fullbeam),
-            PowerChannel::RearLight(_pin) => enable_pin(*_pin, _power_out.rear_light),
-            PowerChannel::BrakeLight(_pin) => enable_pin(*_pin, _power_out.brake_light),
-            PowerChannel::Horn(_pin) => enable_pin(*_pin, _power_out.horn),
-            PowerChannel::Unused0(_pin) => enable_pin(*_pin, _power_out.unused0),
-            PowerChannel::Unused1(_pin) => enable_pin(*_pin, _power_out.unused1),
-        }
-    }
-}
-
-pub fn tick(input : & Input, _system_state : SystemState, _power_channels : & mut [PowerChannel], _clocks : time::Clocks) -> SystemState
+pub fn tick(input : & Input, _system_state : SystemState, channelConfig : & mut PowerOutputConfig, _clocks : time::Clocks) -> SystemState
 {
     let _new_system_state = update_system_state(_system_state, input);
     let _power_out = switch_power_output(&_new_system_state, input, &_clocks);
     
-    apply_power_output(_power_out, _power_channels);
+    apply_power_output(_power_out, channelConfig);
     _new_system_state
 }

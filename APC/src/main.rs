@@ -19,7 +19,7 @@ use rt::ExceptionFrame;
 use hal::prelude::*;
 use hal::stm32f103xx;
 use logic::{ 
-	PowerChannel,
+	PowerOutputConfig,
 	DriverControlConfig
 };
 
@@ -96,20 +96,22 @@ fn main() -> ! {
 	let mut channel12 = gpioa.pa0.into_push_pull_output(& mut gpioa.crl);  	channel11.set_low();
 	
 	// create the mapping
-	let mut power_channels = [ 
-		PowerChannel::TurnLeftFront		(& mut channel01),
-		PowerChannel::TurnLeftRear		(& mut channel02),
-		PowerChannel::TurnRightFront	(& mut channel03),
-		PowerChannel::TurnRightRear		(& mut channel04),
-		PowerChannel::HeadLightParking	(& mut channel05),
-		PowerChannel::HeadLightLowerBeam(& mut channel06),
-		PowerChannel::HeadLightFullBeam	(& mut channel07),
-		PowerChannel::RearLight			(& mut channel08),
-		PowerChannel::BrakeLight		(& mut channel09),
-		PowerChannel::Horn				(& mut channel10),
-		PowerChannel::Unused0			(& mut channel11),
-		PowerChannel::Unused1			(& mut channel12),
-	];
+	let mut outChannels = PowerOutputConfig {
+		channels: [
+			& mut channel01,
+			& mut channel02,
+			& mut channel03,
+			& mut channel04,
+			& mut channel05,
+			& mut channel06,
+			& mut channel07,
+			& mut channel08,
+			& mut channel09,
+			& mut channel10,
+			& mut channel11,
+			& mut channel12,
+		]
+	};
 
 
 	// setup the turn signal state
@@ -125,7 +127,7 @@ fn main() -> ! {
 			& mut controlInput0,
 			& mut controlInput1,
 		]);
-		_system_state = logic::tick(& input, _system_state, & mut power_channels, _clocks);
+		_system_state = logic::tick(& input, _system_state, & mut outChannels, _clocks);
 
 		// read diagnosis from PFETs
 
