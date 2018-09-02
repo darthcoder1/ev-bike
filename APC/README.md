@@ -32,22 +32,24 @@ The input is handled by a BD3376EFV-CE2 (Multiple Inpout Switch Monitor). All ex
 are connected via this chip. It is responsible for securing against hazards (ESD, shorts,etc) and dispatches
 the state of the inputs to the ARM Cortex M3 via SPI.
 
-* Killswitch
-* Turn Signal Left
-* Turn Signal Right
-* Hazard
-* Headlight
-* Fullbeam
-* Brake signal Front
-* Brake signal Rear
-* Sidestand
-* Horn
+                        Channel
+* Killswitch            [Ch 00]         
+* Ignition              [Ch 01]
+* Sidestand             [Ch 02]
+* Headlight             [Ch 03]
+* Fullbeam              [Ch 04]
+* Turn Signal Left      [Ch 05]
+* Turn Signal Right     [Ch 06]
+* Hazard                [Ch 07]
+* Brake signal Front    [Ch 08]
+* Brake signal Rear     [Ch 09]
+* Horn                  [Ch 10]
+
 
 ## Outputs
 
-The ouput has 12 channel. The software takes completely care of the channel
-usage, so they are fully programmable. The outputs are switched by a BTS432E2 powerFET 
-per channel.
+The ouput has 12 channel. The software takes care of the channel usage, so they are fully programmable. 
+The outputs are switched by a BTS432E2 powerFET per channel.
 
 * Turn signal left front
 * Turn signal right front

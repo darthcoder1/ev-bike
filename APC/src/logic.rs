@@ -153,17 +153,17 @@ pub enum PowerChannel<'a>
 pub fn read_input( controlConfigs : [& mut DriverControlConfig;2] ) -> Input {
 
 	Input {
-		ignition : true,
-		brake_front : false,
-		brake_rear : false,
-		turn_left : false,
-		turn_right : false,
-		hazard_light : true,
-		light_on : false,
-		full_beam : false,
-		horn : false, 
+		ignition : DriverControlConfig::ReadChannel(controlConfigs[0], 1).unwrap(),
+		brake_front : DriverControlConfig::ReadChannel(controlConfigs[1], 0).unwrap(),
+		brake_rear : DriverControlConfig::ReadChannel(controlConfigs[1], 1).unwrap(),
+		turn_left : DriverControlConfig::ReadChannel(controlConfigs[0], 5).unwrap(),
+		turn_right : DriverControlConfig::ReadChannel(controlConfigs[0], 6).unwrap(),
+		hazard_light : DriverControlConfig::ReadChannel(controlConfigs[0], 7).unwrap(),
+		light_on : DriverControlConfig::ReadChannel(controlConfigs[0], 3).unwrap(),
+		full_beam : DriverControlConfig::ReadChannel(controlConfigs[0], 4).unwrap(),
+		horn : DriverControlConfig::ReadChannel(controlConfigs[1], 2).unwrap(), 
 		kill_switch :  DriverControlConfig::ReadChannel(controlConfigs[0], 0).unwrap(),
-		side_stand : false,
+		side_stand : DriverControlConfig::ReadChannel(controlConfigs[0], 2).unwrap(),
 	}
 }
 
