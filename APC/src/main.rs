@@ -4,9 +4,10 @@
 #![allow(non_snake_case)]
 
 extern crate cortex_m;
+
 #[macro_use]
 extern crate cortex_m_rt as rt;
-extern crate cortex_m_semihosting as sh;
+extern crate cortex_m_semihosting;
 extern crate panic_semihosting;
 extern crate stm32f103xx_hal as hal;
 extern crate embedded_hal;
@@ -14,7 +15,8 @@ extern crate embedded_hal;
 mod time;
 mod logic;
 
-use rt::ExceptionFrame;
+//use rt::{entry, exception, ExceptionFrame};
+use rt::{entry, exception, ExceptionFrame};
 
 use hal::prelude::*;
 use hal::stm32f103xx;
@@ -26,12 +28,13 @@ use logic::{
 use embedded_hal::digital::OutputPin;
 use embedded_hal::digital::InputPin;
 
+use cortex_m::asm;
+use cortex_m_semihosting::hio;
+use core::fmt::Write;
+
+//#[entry]
 entry!(main);
-
-
-// Main entry
 fn main() -> ! {
-
 	let mut _cortex_m = cortex_m::Peripherals::take().unwrap();
 	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
 
@@ -45,7 +48,7 @@ fn main() -> ! {
 	let mut gpiob = _stm32f103.GPIOB.split(& mut _rcc.apb2);
 	let mut gpioc = _stm32f103.GPIOC.split(& mut _rcc.apb2);
 
-	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh); led.set_low();
+	let mut led = gpioc.pc13.into_push_pull_output(& mut gpioc.crh); led.set_high();
 	
 	// input logic mapping
 	let controlInput0_Data = gpiob.pb4.into_floating_input(& mut gpiob.crl);
@@ -94,7 +97,7 @@ fn main() -> ! {
 	let mut channel10 = gpioa.pa2.into_push_pull_output(& mut gpioa.crl);	channel10.set_low();
 	let mut channel11 = gpioa.pa1.into_push_pull_output(& mut gpioa.crl); 	channel11.set_low();
 	let mut channel12 = gpioa.pa0.into_push_pull_output(& mut gpioa.crl);  	channel11.set_low();
-	
+
 	// create the mapping
 	let mut outChannels = PowerOutputConfig {
 		channels: [
@@ -114,6 +117,7 @@ fn main() -> ! {
 	};
 
 
+
 	// setup the turn signal state
 	let mut _system_state = logic::SystemState {
 		turn_left : logic::State::Inactive,
@@ -121,12 +125,33 @@ fn main() -> ! {
 		hazard : logic::State::Inactive,
 	};
 
+
+	let mut led_state = false;
+	let mut cnt = 0;
     loop {
-    	
-		let input = logic::read_input( [
+		cnt += 1;
+
+		if cnt % 100 == 0 {
+			led_state = (cnt/1000)%2 == 1
+		}
+
+		if led_state {
+			led.set_high();
+		} else {
+			led.set_low();
+		}
+
+
+		let mut input = logic::read_input( [
 			& mut controlInput0,
 			& mut controlInput1,
 		]);
+
+		input.ignition = true;
+		input.light_on = true;
+
+		log_test();
+
 		_system_state = logic::tick(& input, _system_state, & mut outChannels, _clocks);
 
 		// read diagnosis from PFETs
@@ -138,13 +163,32 @@ fn main() -> ! {
 
 
  // define the hard fault handler
- exception!(HardFault, hard_fault);
- fn hard_fault(ef: &ExceptionFrame) -> ! {
-     panic!("HardFault at {:#?}", ef);
+ //#[exception]
+ exception!(HardFault, HardFault);
+ fn HardFault(ef: &ExceptionFrame) -> ! {
+     asm::bkpt();
+
+	 loop {}
  }
 
  // define the default exception handler
- exception!(*, default_handler);
- fn default_handler(irqn: i16) {
-     panic!("Unhandled exception (IRQn = {})", irqn);
+ //#[exception]
+ exception!(*, DefaultHandler2);
+ 
+ fn DefaultHandler2(irqn: i16) {
+     asm::bkpt();
+ }
+
+ fn log_test() -> Result<(), core::fmt::Error> {
+	 let mut stdout = match hio::hstdout() {
+		 Ok(fd) => fd,
+		 Err(()) => return Err(core::fmt::Error),
+	 };
+
+	 let lang = "Rust";
+	 let rank = 1;
+
+	 write!(stdout, "{} on embedded is #{}", lang, rank)?;
+
+	 Ok(())
  }

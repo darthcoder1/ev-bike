@@ -26,6 +26,10 @@ The logic is implemented in rust
 
 Rust must be installed as well as the rust target .
 
+## Deployment
+
+
+
 ## Inputs
 
 The input is handled by a BD3376EFV-CE2 (Multiple Inpout Switch Monitor). All external driver controls 

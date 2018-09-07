@@ -3,6 +3,8 @@ target remote :3333
 # print demangled symbols by default
 #set print asm-demangle on
 
+set auto-load safe-path /
+
 #monitor arm semihosting enable
 
 # # send captured ITM to the file itm.fifo

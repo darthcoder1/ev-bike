@@ -26,27 +26,27 @@ pub struct SystemState
 pub struct Input
 {
 	// true when the ignition is enabled
-	ignition : bool,
+	pub ignition : bool,
 	// true when front brake is used
-	brake_front : bool,
+	pub brake_front : bool,
 	// true when back brake is used
-	brake_rear : bool,
+	pub brake_rear : bool,
 	// true when the left turn signal is activated
-	turn_left : bool,
+	pub turn_left : bool,
 	// true when the right turn signal is activated
-	turn_right : bool,
+	pub turn_right : bool,
 	// true when hazard light is turned on
-	hazard_light : bool,
+	pub hazard_light : bool,
 	// true when the lights are turned on
-	light_on : bool,
+	pub light_on : bool,
 	// true when the full beam is turned on
-	full_beam : bool,
+	pub full_beam : bool,
 	// true when horn button pressed
-	horn : bool,
+	pub horn : bool,
 	// true when killswitch is on KILL
-	kill_switch : bool,
+	pub kill_switch : bool,
 	// true when sidestand is out
-	side_stand : bool,
+	pub side_stand : bool,
 }
 
 

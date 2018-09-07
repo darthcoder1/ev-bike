@@ -14,7 +14,6 @@ pub use hal::rcc::Clocks;
 #[derive(Clone, Copy)]
 pub struct TimeStamp(pub u32);
 
-// TODO: get time from device
 pub fn device_get_ticks() -> TimeStamp {
 	
 	TimeStamp(DWT::get_cycle_count())
