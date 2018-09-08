@@ -138,8 +138,8 @@ pub struct PowerOutput
 	rear_light : bool,
 	brake_light : bool,
 	horn : bool,
-    unused0 : bool,
-    unused1 : bool,
+    _unused0 : bool,
+    _unused1 : bool,
 }
 
 
@@ -321,8 +321,8 @@ fn switch_power_output(_system : &SystemState, _input : &Input, _clock : &time::
 		rear_light : false,
 		brake_light : _input.brake_front || _input.brake_rear,
 		horn : _input.horn,
-        unused0 : false,
-        unused1 : false,
+        _unused0 : false,
+        _unused1 : false,
 	};
 
 	switch_turn_signals(&_system, &_input, &_clock, & mut power_output);	

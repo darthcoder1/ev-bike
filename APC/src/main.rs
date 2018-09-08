@@ -2,13 +2,11 @@
 #![no_main]
 #![no_std]
 #![allow(non_snake_case)]
+#![feature(panic_handler)]
 
 extern crate cortex_m;
-
-#[macro_use]
 extern crate cortex_m_rt as rt;
 extern crate cortex_m_semihosting;
-extern crate panic_semihosting;
 extern crate stm32f103xx_hal as hal;
 extern crate embedded_hal;
 
@@ -17,20 +15,17 @@ mod logic;
 
 //use rt::{entry, exception, ExceptionFrame};
 use rt::{entry, exception, ExceptionFrame};
-
 use hal::prelude::*;
 use hal::stm32f103xx;
 use logic::{ 
 	PowerOutputConfig,
 	DriverControlConfig
 };
-
 use embedded_hal::digital::OutputPin;
-use embedded_hal::digital::InputPin;
-
-use cortex_m::asm;
+use cortex_m::{asm, interrupt};
 use cortex_m_semihosting::hio;
 use core::fmt::Write;
+use core::panic::PanicInfo;
 
 //#[entry]
 entry!(main);
@@ -126,22 +121,7 @@ fn main() -> ! {
 	};
 
 
-	let mut led_state = false;
-	let mut cnt = 0;
     loop {
-		cnt += 1;
-
-		if cnt % 100 == 0 {
-			led_state = (cnt/1000)%2 == 1
-		}
-
-		if led_state {
-			led.set_high();
-		} else {
-			led.set_low();
-		}
-
-
 		let mut input = logic::read_input( [
 			& mut controlInput0,
 			& mut controlInput1,
@@ -149,8 +129,6 @@ fn main() -> ! {
 
 		input.ignition = true;
 		input.light_on = true;
-
-		log_test();
 
 		_system_state = logic::tick(& input, _system_state, & mut outChannels, _clocks);
 
@@ -160,12 +138,25 @@ fn main() -> ! {
     }
  }
 
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    interrupt::disable();
+
+    if let Ok(mut hstdout) = hio::hstdout() {
+        writeln!(hstdout, "{}", info).ok();
+    }
+
+    // OK to fire a breakpoint here because we know the microcontroller is connected to a debugger
+    asm::bkpt();
+
+    loop {}
+}
 
 
  // define the hard fault handler
  //#[exception]
  exception!(HardFault, HardFault);
- fn HardFault(ef: &ExceptionFrame) -> ! {
+ fn HardFault(_ef: &ExceptionFrame) -> ! {
      asm::bkpt();
 
 	 loop {}
@@ -175,7 +166,7 @@ fn main() -> ! {
  //#[exception]
  exception!(*, DefaultHandler2);
  
- fn DefaultHandler2(irqn: i16) {
+ fn DefaultHandler2(_irqn: i16) {
      asm::bkpt();
  }
 
