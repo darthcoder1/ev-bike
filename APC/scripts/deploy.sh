@@ -11,4 +11,4 @@ OUTPUT_BIN=target/thumbv7em-none-eabihf/debug/APC
 OUTPUT_HEX=$OUTPUT_BIN.hex
 
 arm-none-eabi-objcopy -O ihex $OUTPUT_BIN $OUTPUT_BIN.hex
-$FLASH_TOOL --format ihex write target/thumbv7em-none-eabihf/debug/APC.hex
+$FLASH_TOOL --format ihex write $OUTPUT_BIN.hex
