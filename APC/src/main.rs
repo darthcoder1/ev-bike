@@ -1,12 +1,10 @@
-#![deny(unsafe_code)]
-#![no_main]
 #![no_std]
+#![no_main]
 #![allow(non_snake_case)]
-#![feature(panic_handler)]
+#![allow(non_upper_case_globals)]
 
 extern crate cortex_m;
 extern crate cortex_m_rt as rt;
-extern crate cortex_m_semihosting;
 extern crate stm32f103xx_hal as hal;
 extern crate embedded_hal;
 
@@ -23,13 +21,11 @@ use logic::{
 };
 use embedded_hal::digital::OutputPin;
 use cortex_m::{asm, interrupt};
-use cortex_m_semihosting::hio;
-use core::fmt::Write;
 use core::panic::PanicInfo;
 
-//#[entry]
-entry!(main);
+#[entry]
 fn main() -> ! {
+
 	let mut _cortex_m = cortex_m::Peripherals::take().unwrap();
 	let _stm32f103 = stm32f103xx::Peripherals::take().unwrap();
 
@@ -128,7 +124,7 @@ fn main() -> ! {
 		]);
 
 		input.ignition = true;
-		input.light_on = true;
+		input.turn_left = input.turn_left;
 
 		_system_state = logic::tick(& input, _system_state, & mut outChannels, _clocks);
 
@@ -139,47 +135,18 @@ fn main() -> ! {
  }
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+unsafe fn panic(info: &PanicInfo) -> ! {
     interrupt::disable();
-
-    if let Ok(mut hstdout) = hio::hstdout() {
-        writeln!(hstdout, "{}", info).ok();
-    }
-
-    // OK to fire a breakpoint here because we know the microcontroller is connected to a debugger
     asm::bkpt();
 
-    loop {}
+	loop {}
 }
 
 
- // define the hard fault handler
- //#[exception]
- exception!(HardFault, HardFault);
- fn HardFault(_ef: &ExceptionFrame) -> ! {
+// define the hard fault handler
+#[exception]
+fn HardFault(_ef: &ExceptionFrame) -> ! {
      asm::bkpt();
 
 	 loop {}
- }
-
- // define the default exception handler
- //#[exception]
- exception!(*, DefaultHandler2);
- 
- fn DefaultHandler2(_irqn: i16) {
-     asm::bkpt();
- }
-
- fn log_test() -> Result<(), core::fmt::Error> {
-	 let mut stdout = match hio::hstdout() {
-		 Ok(fd) => fd,
-		 Err(()) => return Err(core::fmt::Error),
-	 };
-
-	 let lang = "Rust";
-	 let rank = 1;
-
-	 write!(stdout, "{} on embedded is #{}", lang, rank)?;
-
-	 Ok(())
  }

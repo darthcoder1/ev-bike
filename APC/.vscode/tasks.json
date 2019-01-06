@@ -16,7 +16,7 @@
             },
             "args": [
                 "build",
-                "--target=thumbv7em-none-eabihf"
+                "--target=thumbv7em-none-eabihf",
             ],
             "presentation": {
                 "echo": true,
@@ -30,10 +30,13 @@
             ]
         },
         {
-            "type": "shell",
+            "type": "process",
             "label": "deploy firmware",
             "group": "build",
-            "command": "./deploy.sh",
+            "command": "./scripts/deploy.bat",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "presentation": {
                 "echo": true,
                 "reveal": "always",

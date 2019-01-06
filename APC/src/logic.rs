@@ -86,7 +86,7 @@ impl<'a> DriverControlConfig<'a>
 	}
 
 	pub fn ReadChannel(& mut self, channelIdx : usize) -> Option<bool> {
-		if channelIdx < 8 {
+		if channelIdx >= 8 {
 			None
 		} else {
 		
@@ -217,7 +217,7 @@ fn caclulate_turn_signal(_state : &State, _cur_time : TimeStamp, _on_time : u32,
 fn switch_turn_signals(_system_state : &SystemState, _input : &Input, _clocks : &time::Clocks, _power_out : & mut PowerOutput)
 {
 	let current_time = time::device_get_ticks();
-	let _one_sec_in_ticks = time::time_ms_to_ticks(&_clocks, 1000);
+	let _one_sec_in_ticks = time::time_ms_to_ticks(&_clocks, 500);
 
 	let _hazard_on = match _system_state.hazard {
 		State::Active(_start_time) => (true, caclulate_turn_signal(&_system_state.hazard, current_time, _one_sec_in_ticks, _one_sec_in_ticks)),
@@ -333,7 +333,7 @@ fn switch_power_output(_system : &SystemState, _input : &Input, _clock : &time::
 
 fn apply_power_output(powerOut : PowerOutput, powerChannels : & mut PowerOutputConfig) {
 	
-	powerChannels.SwitchChannel(0,  powerOut.head_light_lowbeam);
+	powerChannels.SwitchChannel(0,  powerOut.turn_left_front);
 	powerChannels.SwitchChannel(1,  powerOut.head_light_fullbeam);
 	powerChannels.SwitchChannel(2,  powerOut.head_light_parking);
 	powerChannels.SwitchChannel(3,  powerOut.turn_left_front);
@@ -346,7 +346,6 @@ fn apply_power_output(powerOut : PowerOutput, powerChannels : & mut PowerOutputC
 
 	powerChannels.SwitchChannel(10, false);
 	powerChannels.SwitchChannel(11, false);
-	powerChannels.SwitchChannel(12, false);
 }
 
 pub fn tick(input : & Input, _system_state : SystemState, channelConfig : & mut PowerOutputConfig, _clocks : time::Clocks) -> SystemState
