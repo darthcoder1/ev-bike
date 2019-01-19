@@ -9,7 +9,8 @@ use opengles::glesv2 as gl;
 use gl::GLuint;
 use gl::GLenum;
 
-use self::image::GenericImage;
+//use self::image::GenericImage;
+use self::image::GenericImageView;
 
 pub struct Texture
 {

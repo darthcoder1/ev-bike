@@ -122,8 +122,6 @@ fn main() {
         println!("Speed at {} rpm: {} km/h", rpm, speed);
     }
 
-    panic!("DONE!");
-
     bcm_host::init();
        
     let mut window = ebola::CreateRenderWindow();
